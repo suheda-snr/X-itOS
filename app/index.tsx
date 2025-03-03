@@ -1,10 +1,20 @@
-import { StyleSheet} from 'react-native';
+import { StyleSheet } from 'react-native';
 import React from 'react'
 import HomeScreenWithScan from '@/components/HomeScreenWithScan';
+import Greeting from '@/app/Greeting';
+import PersonalQR from './QRScanner/PersonalQR';
+import TicketQR from './QRScanner/TicketQR';
+import TeamStats from './GameStatistics/TeamStats';
 
 export default function HomeScreen() {
   return (
-    <HomeScreenWithScan/>
+    <>
+      {/*<HomeScreenWithScan />*/}
+      {/*<Greeting />*/}
+      {/*<PersonalQR />*/}
+      {/*<TicketQR />*/}
+      <TeamStats />
+    </>
   );
 }
 
