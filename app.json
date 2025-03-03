@@ -1,5 +1,8 @@
 {
   "expo": {
+    "permissions": [
+      "CAMERA"
+    ],
     "name": "x-itos",
     "slug": "x-itos",
     "version": "1.0.0",
@@ -32,7 +35,9 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-barcode-scanner"
     ],
     "experiments": {
       "typedRoutes": true

@@ -7,6 +7,7 @@ export default function HomeScreenWithScan() {
         <Text>X-ITOS</Text>
         <Pressable onPress={() => alert("Navigate to scan QR")}>
             <Text>Scan QR code</Text>
+            
         </Pressable>
     </View>
   );
