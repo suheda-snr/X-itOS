@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ImageBackground } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,14 +22,6 @@ export default function PasscodeScreen() {
         style={styles.overlay}
       >
         <View style={styles.header}>
-          {/* <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>ADMIN ACCESS</Text>
-          <View style={styles.backButton} /> */}
         </View>
 
         <View style={styles.content}>
@@ -150,7 +142,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     textAlign: 'center',
-    letterSpacing: 8,
   },
   submitButton: {
     height: 56,

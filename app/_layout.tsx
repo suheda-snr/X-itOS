@@ -19,6 +19,8 @@ export default function RootLayout() {
       <Stack>
       <Stack.Screen name="index" options={{ title: "Login" }} />
       <Stack.Screen name="welcome" options={{ title: "Welcome" }} />
+      <Stack.Screen name="[teaminfo]" options={{ title: "Team info" }} />
+      <Stack.Screen name="playersinfoadding" options={{ title: "Player Info Adding" }} />
       <Stack.Screen name="passcode" options={{ title: "Enter Passcode" }} />
       <Stack.Screen name="room/index" options={{ title: "Room Selection" }} />
       <Stack.Screen name="room/[id]" options={{ title: "Room Details" }} />

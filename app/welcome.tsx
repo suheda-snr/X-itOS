@@ -1,10 +1,22 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity,Pressable } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function WelcomeScreen() {
+  const [count, setCount] = useState(1)
   const { code } = useLocalSearchParams();
+  
+  function navigateToPasscode(){
+    if(count >= 5){
+      setCount(1)
+      router.push('/passcode')
+    }else{
+      let increaseCount = count
+      setCount(increaseCount+1)
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -14,15 +26,15 @@ export default function WelcomeScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Welcome</Text>
-          
         </View>
 
         <View style={styles.content}>
           <View style={styles.iconContainer}>
             <Ionicons name="checkmark-circle" size={80} color="#ff4b8c" />
           </View>
-          
-          <Text style={styles.title}>Welcome to ESCAPE MASTER!</Text>
+          <Pressable onPress={() => navigateToPasscode()}>
+            <Text style={styles.title}>Welcome to ESCAPE MASTER!</Text>
+          </Pressable>
           <Text style={styles.subtitle}>
             Your booking has been confirmed. Get ready for an exciting adventure!
           </Text>
@@ -34,7 +46,7 @@ export default function WelcomeScreen() {
 
           <TouchableOpacity 
             style={styles.startButton}
-            onPress={() => router.push('/passcode')}
+            onPress={() => router.push('/playersinfoadding')}
           >
             <Text style={styles.startButtonText}>Start Your Experience</Text>
           </TouchableOpacity>
