@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import {  router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function WelcomeScreen() {
   const [count, setCount] = useState(1);
-  const { code, room } = useLocalSearchParams();
+  const isRoomSet: boolean = false;
   const companyName: string = "EscapeX";
+  const roomName: string = "Game Room 1";
 
   function navigateToPasscode() {
     if (count >= 5) {
@@ -21,20 +22,20 @@ export default function WelcomeScreen() {
     <View style={styles.container}>
       <LinearGradient colors={['#1a1a1a', '#2a2a2a']} style={styles.gradient}>
         <View style={styles.headerContainer}>
-          <Pressable onPress={navigateToPasscode} style={styles.headerPressable}>
+          <Pressable onPress={() => navigateToPasscode()} style={styles.headerPressable}>
             <Text style={styles.headerTitle}>{companyName}</Text>
           </Pressable>
 
           <View style={styles.roomTitleContainer}>
-            <Text style={styles.title}>{room ? `Welcome to ${room}` : "Welcome"}</Text>
+            <Text style={styles.title}>{isRoomSet ? `Welcome to ${roomName}` : "Welcome"}</Text>
           </View>
         </View>
 
         <View style={styles.content}>
-          {room ? (
+          {isRoomSet ? (
             <>
               <Text style={styles.subtitle}>
-                Scan your ticket QR code to begin your adventure in {room}
+                Scan your ticket QR code to begin your adventure in {roomName}
               </Text>
               <TouchableOpacity
                 style={styles.startButton}
