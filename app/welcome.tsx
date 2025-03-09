@@ -2,14 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 
 export default function WelcomeScreen() {
   const [count, setCount] = useState(1);
   const { code, room } = useLocalSearchParams();
-  const isRoomSet: boolean = true;
   const companyName: string = "EscapeX";
-  const roomName: string = "Game Room 1";
 
   function navigateToPasscode() {
     if (count >= 5) {
@@ -24,29 +21,32 @@ export default function WelcomeScreen() {
     <View style={styles.container}>
       <LinearGradient colors={['#1a1a1a', '#2a2a2a']} style={styles.gradient}>
         <View style={styles.headerContainer}>
-          <Pressable onPress={() => navigateToPasscode()} style={styles.headerPressable}>
+          <Pressable onPress={navigateToPasscode} style={styles.headerPressable}>
             <Text style={styles.headerTitle}>{companyName}</Text>
           </Pressable>
 
           <View style={styles.roomTitleContainer}>
-            <Text style={styles.title}>Welcome to {roomName}</Text>
+            <Text style={styles.title}>{room ? `Welcome to ${room}` : "Welcome"}</Text>
           </View>
         </View>
 
         <View style={styles.content}>
-          {isRoomSet && (
+          {room ? (
+            <>
+              <Text style={styles.subtitle}>
+                Scan your ticket QR code to begin your adventure in {room}
+              </Text>
+              <TouchableOpacity
+                style={styles.startButton}
+                onPress={() => router.push('/QRScanner/TicketQR')}
+              >
+                <Text style={styles.startButtonText}>Begin Your Adventure</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
             <Text style={styles.subtitle}>
-              Scan your ticket QR code to begin your adventure in {roomName}
+              Room is not set for this device. Please navigate to the admin panel.
             </Text>
-          )}
-
-          {isRoomSet && (
-            <TouchableOpacity
-              style={styles.startButton}
-              onPress={() => router.push('/QRScanner/TicketQR')}
-            >
-              <Text style={styles.startButtonText}>Begin Your Adventure</Text>
-            </TouchableOpacity>
           )}
         </View>
       </LinearGradient>
