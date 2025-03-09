@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
-import {  router } from 'expo-router';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function WelcomeScreen() {
   const [count, setCount] = useState(1);
-  const isRoomSet: boolean = false;
+  const isRoomSet: boolean = true;
   const companyName: string = "EscapeX";
   const roomName: string = "Game Room 1";
 
