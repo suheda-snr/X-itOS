@@ -1,5 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import React from "react";
+import { useRouter } from "expo-router";
 import { View, Text, FlatList, StyleSheet } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,6 +16,12 @@ function TeamInfoScreen() {
   const parsedTeamName: string = teamName ? JSON.parse(teamName as string) : "";
   const parsedPlayers: Player[] = players ? JSON.parse(players as string) : [];
 
+  const router = useRouter();
+
+  const handleNavigateToStats = () => {
+    router.push('/GameStatistics/[TeamStats]');
+  };
+
   return (
     <LinearGradient colors={["#1a1a1a", "#2a2a2a"]} style={styles.container}>
       <Text style={styles.teamName}>{parsedTeamName}</Text>
@@ -29,8 +36,13 @@ function TeamInfoScreen() {
           </View>
         )}
       />
-      
+
       <Text style={styles.footer}>Enjoy the game!</Text>
+
+      {/* Button to redirect to the statistics, this route will be redirected when the game ends in actual project*/}
+      <Text style={styles.redirectText} onPress={handleNavigateToStats}>
+        Go to Team Statistics
+      </Text>
     </LinearGradient>
   );
 }

@@ -127,7 +127,7 @@ const PlayersInfoAddingScreen: React.FC = () => {
         </TouchableOpacity>
         <View style={styles.buttonsGroup}>
           <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>Scan QR</Text>
+            <Text style={styles.buttonText} onPress={() => router.push('/QRScanner/PersonalQR')}>Scan QR</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.button} onPress={addGuest}>
             <Text style={styles.buttonText}>Add Guest</Text>
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   icon: { marginRight: 10 },
   playerName: { flex: 1, fontSize: 16, color: "#fff" },
   picker: { width: 200, color: "#fff", backgroundColor: "rgba(255,255,255,0.1)" },
-  pickerNotAvailable: { width: 200, color: "#fff"},
+  pickerNotAvailable: { width: 200, color: "#fff" },
   buttonContainer: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
   button: { padding: 10, backgroundColor: "#ff4b8c", borderRadius: 5, marginHorizontal: 10 },
   startButton: { padding: 10, backgroundColor: "#ff4b8c", borderRadius: 5, marginHorizontal: 10 },
