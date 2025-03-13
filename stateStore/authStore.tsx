@@ -37,7 +37,9 @@ const useAuthStore = create<AuthState>((set) => ({
                 // Delete company-related data
                 await SecureStore.deleteItemAsync('jwtCompany');
                 await SecureStore.deleteItemAsync('companyUser');
-                set({ jwtCompany: null, companyUser: null });
+                await SecureStore.deleteItemAsync('jwtAdmin');
+                await SecureStore.deleteItemAsync('adminUser');
+                set({ jwtCompany: null, companyUser: null, jwtAdmin: null, adminUser: null });
                 console.log('Company logged out successfully');
             } else if (role === 'admin') {
                 // Delete admin-related data
