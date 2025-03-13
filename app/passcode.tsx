@@ -1,21 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ImageBackground } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { logout } from '../api/authApi';
+import { logout, getCompanyUserInfo, loginWithAccessCode } from '../api/authApi';
 
 export default function PasscodeScreen() {
   const [passcode, setPasscode] = useState('');
+  const [companyId, setCompanyId] = useState('');
 
-  const handleSubmit = () => {
-    // In a real app, you would validate the passcode here
-    router.replace('/room');
+  // Function to get company ID
+  const fetchCompanyId = async () => {
+    try {
+      const companyUser = await getCompanyUserInfo();
+      setCompanyId(companyUser.companyId);
+    } catch (error) {
+      console.error("Error fetching company ID:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanyId();
+  }, []);
+
+  const handleSubmit = async () => {
+    if (!companyId || !passcode) {
+      console.error("Missing company ID or passcode");
+      return;
+    }
+
+    try {
+      await loginWithAccessCode(passcode, companyId);
+      router.replace('/room');
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
   };
 
   const handleLogout = async () => {
-    await logout();  // Call the logout function
-    router.push('/login')
+    await logout('company');
+    router.push('/login');
   };
 
   return (
@@ -27,14 +51,13 @@ export default function PasscodeScreen() {
         colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']}
         style={styles.overlay}
       >
-        <View style={styles.header}>
-        </View>
+        <View style={styles.header}></View>
 
         <View style={styles.content}>
           <View style={styles.titleContainer}>
             <Text style={styles.title}>Enter Passcode</Text>
             <Text style={styles.subtitle}>
-              Please enter the admin passcode to access admin panel.
+              Please enter the admin passcode to access the admin panel.
             </Text>
           </View>
 
@@ -58,13 +81,6 @@ export default function PasscodeScreen() {
               onPress={handleSubmit}
             >
               <Text style={styles.submitButtonText}>Login</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.backToRooms}
-              onPress={() => router.push('/(tabs)')}
-            >
-              <Text style={styles.backToRoomsText}>Back to Rooms</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
