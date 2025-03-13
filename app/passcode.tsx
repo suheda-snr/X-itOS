@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ImageBackground } 
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { logout } from '../api/authApi';
 
 export default function PasscodeScreen() {
   const [passcode, setPasscode] = useState('');
@@ -10,6 +11,11 @@ export default function PasscodeScreen() {
   const handleSubmit = () => {
     // In a real app, you would validate the passcode here
     router.replace('/room');
+  };
+
+  const handleLogout = async () => {
+    await logout();  // Call the logout function
+    router.push('/login')
   };
 
   return (
@@ -47,18 +53,25 @@ export default function PasscodeScreen() {
               />
             </View>
 
-            <TouchableOpacity 
-          style={styles.submitButton}
-          onPress={handleSubmit}
-             >
-              <Text style={styles.submitButtonText}>login</Text>
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleSubmit}
+            >
+              <Text style={styles.submitButtonText}>Login</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.backToRooms}
               onPress={() => router.push('/(tabs)')}
             >
               <Text style={styles.backToRoomsText}>Back to Rooms</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
+              <Text style={styles.logoutButtonText}>Logout</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -169,5 +182,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     textDecorationLine: 'underline',
+  },
+  logoutButton: {
+    marginTop: 24,
+    height: 56,
+    backgroundColor: '#ff4b8c',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ff4b8c',
+  },
+  logoutButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

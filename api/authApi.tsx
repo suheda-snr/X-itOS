@@ -2,9 +2,11 @@ import { decodeJWT } from '../utils/jwtUtils';
 import useAuthStore from "@/stateStore/authStore";
 import { User } from "../types/user";
 
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+
 export const login = async (email: string, password: string) => {
     try {
-        const response = await fetch('http://localhost:3000/api/auth/signin', {
+        const response = await fetch(`${BASE_URL}/api/auth/signin`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -13,6 +15,7 @@ export const login = async (email: string, password: string) => {
         });
 
         const data = await response.json();
+        console.log('Login response:', data);
 
         if (response.ok) {
             const token = data.access_token;

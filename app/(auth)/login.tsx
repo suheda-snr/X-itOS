@@ -2,17 +2,44 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { login } from '../../api/authApi';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    // Step 1: Check if email and password are provided
+    console.log('Email:', email);
+    console.log('Password:', password);
+
     if (email && password) {
-      router.replace('/welcome');
+      try {
+        // Step 2: Call the login function and pass email and password
+        console.log('Attempting to log in with email and password...');
+        const token = await login(email, password);
+
+        // Step 3: Check if token is received
+        console.log('Received token:', token);
+
+        if (token) {
+          // Step 4: Successful login, navigate to the welcome screen
+          console.log('Login successful, navigating to welcome screen...');
+          router.replace('/welcome');
+        } else {
+          console.log('Login failed, no token received.');
+        }
+      } catch (error) {
+        // Step 5: Catch and log any errors that occur during the login process
+        console.error('Error during login:', error);
+      }
+    } else {
+      // Step 6: Handle the case where email or password is missing
+      console.error('Email or password missing');
     }
   };
+
 
   const handleForgotPassword = () => {
     router.push('/forgot-password');
@@ -68,7 +95,7 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.loginButton, email && password ? styles.loginButtonActive : null]}
               onPress={handleLogin}
             >
@@ -77,7 +104,7 @@ export default function LoginScreen() {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.forgotPassword}
               onPress={handleForgotPassword}
             >
