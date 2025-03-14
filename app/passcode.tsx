@@ -200,7 +200,6 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   logoutButton: {
-    marginTop: 24,
     height: 56,
     backgroundColor: '#ff4b8c',
     borderRadius: 12,
