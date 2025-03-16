@@ -10,8 +10,14 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    ```bash
    npm install
    ```
+2. Set up environment variables
 
-2. Start the app
+   ```bash
+   cp .env.development.example .env.development
+   ```
+   - Open .env.development and replace your_api_url_here with your actual API URL.
+
+3. Start the app
 
    ```bash
     npx expo start
