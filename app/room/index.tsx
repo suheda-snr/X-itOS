@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ImageBackground }
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { logout } from '../../api/authApi';
 
 const ROOMS = [
   { id: 1, title: 'Room Number 1' },
@@ -12,6 +13,11 @@ const ROOMS = [
 ];
 
 export default function RoomsScreen() {
+  const handleAdminLogout = async () => {
+    await logout('admin');
+    router.push('/welcome');
+  };
+
   return (
     <ImageBackground
       source={{ uri: 'https://images.unsplash.com/photo-1585951237318-9ea5e175b891?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80' }}
@@ -24,12 +30,12 @@ export default function RoomsScreen() {
 
         <View style={styles.content}>
           <Text style={styles.title}>Select a Room</Text>
-          
+
           <ScrollView style={styles.roomList} showsVerticalScrollIndicator={false}>
             {ROOMS.map((room) => (
               <View key={room.id} style={styles.roomItem}>
                 <Text style={styles.roomTitle}>{room.title}</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.viewDetailsButton}
                   onPress={() => router.push(`/room/${room.id}`)}
                 >
@@ -39,6 +45,16 @@ export default function RoomsScreen() {
             ))}
           </ScrollView>
         </View>
+
+        <View style={styles.floatingButtonContainer}>
+          <TouchableOpacity
+            style={styles.floatingButton}
+            onPress={handleAdminLogout}
+          >
+            <Ionicons name="log-out" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
       </LinearGradient>
     </ImageBackground>
   );
@@ -50,19 +66,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-  },
-  header: {
-    paddingTop: 48,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#fff',
-    letterSpacing: 2,
   },
   content: {
     flex: 1,
@@ -84,7 +87,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 20,
-    marginBottom: 12,
+    marginBottom: 20, // Increased space after each room item
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 12,
     borderWidth: 1,
@@ -109,12 +112,14 @@ const styles = StyleSheet.create({
   floatingButtonContainer: {
     position: 'absolute',
     bottom: 24,
+    left: 24,
     right: 24,
+    alignItems: 'center',
   },
   floatingButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: '100%', // Make the button rectangular (full width)
+    height: 50, // Set a specific height
+    borderRadius: 10, // Adjust the corner radius for a rectangular shape
     backgroundColor: '#ff4b8c',
     justifyContent: 'center',
     alignItems: 'center',
@@ -123,10 +128,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-  },
-  floatingButtonText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
   },
 });
