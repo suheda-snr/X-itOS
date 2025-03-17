@@ -22,12 +22,12 @@ export default function PasscodeScreen() {
   };
 
   const fetchRooms = async () => {
-          try {
-              await getRoomsByCompanyId();
-          } catch (error) {
-              console.error('Failed to fetch rooms:', error);
-          }
-      };
+    try {
+      await getRoomsByCompanyId();
+    } catch (error) {
+      console.error('Failed to fetch rooms:', error);
+    }
+  };
 
   useEffect(() => {
     fetchCompanyId();
@@ -40,13 +40,21 @@ export default function PasscodeScreen() {
     }
 
     try {
-      setLoading(true)
-      await loginWithAccessCode(passcode, companyId);
-      await fetchRooms()
-      setLoading(false)
+      setLoading(true);
+      const token = await loginWithAccessCode(passcode, companyId, 'admin');
+
+      if (!token) {
+        console.error("Login failed due to role mismatch");
+        setLoading(false);
+        return;
+      }
+
+      await fetchRooms();
+      setLoading(false);
       router.replace('/room');
     } catch (error) {
       console.error("Login failed:", error);
+      setLoading(false);
     }
   };
 

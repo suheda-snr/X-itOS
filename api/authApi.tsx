@@ -23,7 +23,7 @@ export const login = async (email: string, password: string) => {
 
             if (!decoded || decoded.role !== 'COMPANY') {
                 console.warn('Unauthorized role. Logging out.');
-                await useAuthStore.getState().logout(); // Logout in case of invalid role
+                await useAuthStore.getState().logout(decoded.role);
                 return;
             }
 
@@ -65,7 +65,7 @@ export const getCompanyUserInfo = async () => {
     }
 };
 
-export const loginWithAccessCode = async (accessCode: string, companyId: string) => {
+export const loginWithAccessCode = async (accessCode: string, companyId: string, role: 'admin' | 'company') => {
     try {
         const response = await fetch(`${BASE_URL}/api/auth/access-code`, {
             method: 'POST',
@@ -81,11 +81,11 @@ export const loginWithAccessCode = async (accessCode: string, companyId: string)
         if (response.ok) {
             const token = data.access_token;
             const decoded = decodeJWT(token);
+            console.log('Decoded role:', decoded.role);
 
-            // Check if the role is COMPANY
-            if (!decoded || decoded.role !== 'ADMIN') {
-                console.warn('Unauthorized role. Access denied.');
-                throw new Error('Unauthorized role. Only ADMIN users can log in.');
+            if (decoded.role.toUpperCase() !== role.toUpperCase()) {
+                console.error(`Unauthorized role: ${decoded.role}`);
+                throw new Error('Unauthorized role');
             }
 
             // Extract user info from decoded JWT payload
@@ -101,7 +101,8 @@ export const loginWithAccessCode = async (accessCode: string, companyId: string)
                 role: decoded.role,
             };
 
-            await useAuthStore.getState().setJwt(token, userData, 'admin');
+            // Save the JWT and user info in the store based on the role
+            await useAuthStore.getState().setJwt(token, userData, role);
             return token;
         } else {
             console.error('Access code login failed:', data.message);
@@ -109,7 +110,7 @@ export const loginWithAccessCode = async (accessCode: string, companyId: string)
         }
     } catch (error) {
         console.error('Error during access code login:', error);
-        throw error;  // Rethrow the error for further handling in the UI
+        throw error;
     }
 };
 
