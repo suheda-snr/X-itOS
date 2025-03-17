@@ -5,56 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCompanyStore } from '@/stateStore/companyStore';
 
-const ROOMS = {
-  1: {
-    title: 'The Haunted Mansion',
-    description: 'You and your team are trapped in an abandoned mansion full of spooky secrets. Solve puzzles, find hidden clues, and escape before the clock runs out! Can you uncover the mystery before it\'s too late?',
-    image: 'https://images.unsplash.com/photo-1520263115673-610416f52ab6?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    difficulty: 'Hard',
-    duration: '60 minutes',
-    teamSize: '2-6 players',
-    successRate: '35%',
-  },
-  2: {
-    title: 'Escape from Alcatraz',
-    description: 'Experience the thrill of attempting to escape from the infamous Alcatraz prison. Work together to solve intricate puzzles and find your way to freedom before the guards return!',
-    image: 'https://images.unsplash.com/photo-1573652636601-d6fdcfc59640?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    difficulty: 'Medium',
-    duration: '60 minutes',
-    teamSize: '2-6 players',
-    successRate: '45%',
-  },
-  3: {
-    title: 'Space Station Crisis',
-    description: 'Your space station has been hit by debris and is losing oxygen. Work with your team to repair the systems and ensure your survival before time runs out!',
-    image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    difficulty: 'Expert',
-    duration: '60 minutes',
-    teamSize: '2-6 players',
-    successRate: '25%',
-  },
-  4: {
-    title: 'Pirates\' Treasure',
-    description: 'Search for hidden treasure in this pirate-themed adventure. Solve riddles and find clues to locate the legendary treasure before rival pirates arrive!',
-    image: 'https://images.unsplash.com/photo-1590138870595-a8b585e780c5?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    difficulty: 'Medium',
-    duration: '60 minutes',
-    teamSize: '2-6 players',
-    successRate: '40%',
-  },
-  5: {
-    title: 'Egyptian Tomb',
-    description: 'Explore an ancient Egyptian tomb filled with puzzles and traps. Can you uncover its secrets and escape before the curse takes hold?',
-    image: 'https://images.unsplash.com/photo-1562679299-266edbefd6d7?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    difficulty: 'Hard',
-    duration: '60 minutes',
-    teamSize: '2-6 players',
-    successRate: '30%',
-  },
-};
-
 export default function RoomScreen() {
-  const { id } = useLocalSearchParams();
   const room = useCompanyStore.getState().chosenRoom
 
   const handleBookRoom = () => {
@@ -82,7 +33,7 @@ export default function RoomScreen() {
       >
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <Text style={styles.roomTitle}>{room?.name}</Text>
-          
+
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
               <Ionicons name="time-outline" size={24} color="#ff4b8c" />
@@ -112,14 +63,14 @@ export default function RoomScreen() {
           </View>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={handleBookRoom}
             >
               <Text style={styles.actionButtonText}>Book Room</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, styles.secondaryButton]}
               onPress={handleBackToRooms}
             >
@@ -127,7 +78,7 @@ export default function RoomScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.mapLink}
             onPress={handleViewMap}
           >

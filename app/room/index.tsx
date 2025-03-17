@@ -9,14 +9,6 @@ import { getRoomsByCompanyId } from '@/api/companyApi';
 import { useCompanyStore } from '@/stateStore/companyStore';
 import { Room } from '@/types/room';
 
-const ROOMS = [
-  { id: 1, title: 'Room Number 1' },
-  { id: 2, title: 'Room Number 2' },
-  { id: 3, title: 'Room Number 3' },
-  { id: 4, title: 'Room Number 4' },
-  { id: 5, title: 'Room Number 5' },
-];
-
 export default function RoomsScreen() {
   const handleAdminLogout = async () => {
     await logout('admin');
@@ -58,13 +50,13 @@ export default function RoomsScreen() {
 
       </LinearGradient>
       <View style={styles.floatingButtonContainer}>
-          <TouchableOpacity
-            style={styles.floatingButton}
-            onPress={handleAdminLogout}
-          >
-            <Ionicons name="log-out" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.floatingButton}
+          onPress={handleAdminLogout}
+        >
+          <Ionicons name="log-out" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
     </ImageBackground>
   );
 }
