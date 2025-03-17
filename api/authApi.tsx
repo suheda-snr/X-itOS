@@ -82,6 +82,12 @@ export const loginWithAccessCode = async (accessCode: string, companyId: string)
             const token = data.access_token;
             const decoded = decodeJWT(token);
 
+            // Check if the role is COMPANY
+            if (!decoded || decoded.role !== 'ADMIN') {
+                console.warn('Unauthorized role. Access denied.');
+                throw new Error('Unauthorized role. Only ADMIN users can log in.');
+            }
+
             // Extract user info from decoded JWT payload
             const userData: User = {
                 id: decoded.id,
@@ -95,7 +101,6 @@ export const loginWithAccessCode = async (accessCode: string, companyId: string)
                 role: decoded.role,
             };
 
-            // Save the JWT and user info in the store for company role
             await useAuthStore.getState().setJwt(token, userData, 'admin');
             return token;
         } else {
@@ -107,7 +112,6 @@ export const loginWithAccessCode = async (accessCode: string, companyId: string)
         throw error;  // Rethrow the error for further handling in the UI
     }
 };
-
 
 
 export const logout = async (role: 'company' | 'admin') => {
