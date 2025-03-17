@@ -4,34 +4,51 @@ import { router } from 'expo-router';
 import useAuthStore from '@/stateStore/authStore';
 import { useCompanyStore } from '@/stateStore/companyStore';
 import { LinearGradient } from 'expo-linear-gradient';
+import { loginWithAccessCode } from '../api/authApi';
+import ModalComponent from '@/components/Modal';
 
 export default function WelcomeScreen() {
   const [count, setCount] = useState(1);
   const isRoomSet: boolean = true;
-  const companyName = useCompanyStore.getState().companyData?.name
-  const roomName: string = "Game Room 1";
-  const [loading, setLoading] = useState(false)
-  
+  const [showModal, setShowModal] = useState(false);
+  const [companyPasscode, setCompanyPasscode] = useState('');
+  const companyName = useCompanyStore.getState().companyData?.name;
+  const roomName = "Game Room 1";
+  const companyId = useAuthStore.getState().companyUser?.companyId;
 
   function navigateToPasscode() {
     if (count >= 5) {
-      setCount(1);
-      router.push('/passcode');
+      setCount(0);
+      setShowModal(true);
     } else {
       setCount(prevCount => prevCount + 1);
     }
   }
 
+  const handlePasscodeSubmit = async () => {
+    try {
+      if (!companyId) {
+        throw new Error("Company ID is undefined");
+      }
+      const token = await loginWithAccessCode(companyPasscode, companyId, 'company');
+      router.push('/passcode');
+    } catch (error) {
+      alert("Login failed. Please try again.");
+    } finally {
+      setCompanyPasscode('');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <LinearGradient colors={['#1a1a1a', '#2a2a2a']} style={styles.gradient}>
         <View style={styles.headerContainer}>
-          <Pressable onPress={() => navigateToPasscode()} style={styles.headerPressable}>
+          <Pressable onPress={navigateToPasscode} style={styles.headerPressable}>
             <Text style={styles.headerTitle}>{companyName}</Text>
           </Pressable>
 
           <View style={styles.roomTitleContainer}>
-            <Text style={styles.title}>{isRoomSet ? `Welcome to ${roomName}` : "Welcome"}</Text>
+            <Text style={styles.title}>{`Welcome to ${roomName}`}</Text>
           </View>
         </View>
 
@@ -55,6 +72,14 @@ export default function WelcomeScreen() {
           )}
         </View>
       </LinearGradient>
+
+      <ModalComponent
+        visible={showModal}
+        onClose={() => setShowModal(false)}
+        onSubmit={handlePasscodeSubmit}
+        passcode={companyPasscode}
+        setPasscode={setCompanyPasscode}
+      />
     </View>
   );
 }
