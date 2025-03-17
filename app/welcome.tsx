@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import { router } from 'expo-router';
+import useAuthStore from '@/stateStore/authStore';
+import { useCompanyStore } from '@/stateStore/companyStore';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function WelcomeScreen() {
   const [count, setCount] = useState(1);
   const isRoomSet: boolean = true;
-  const companyName: string = "EscapeX";
+  const companyName = useCompanyStore.getState().companyData?.name
   const roomName: string = "Game Room 1";
+  const [loading, setLoading] = useState(false)
+  
 
   function navigateToPasscode() {
     if (count >= 5) {

@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground } 
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { login } from '../../api/authApi';
+import { getCompanyName } from '@/api/companyApi';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -26,6 +27,8 @@ export default function LoginScreen() {
         if (token) {
           // Step 4: Successful login, navigate to the welcome screen
           console.log('Login successful, navigating to welcome screen...');
+          // my imposter function :) if the login is successfull, gets the company data based on companyID
+          await getCompanyName()
           router.replace('/welcome');
         } else {
           console.log('Login failed, no token received.');

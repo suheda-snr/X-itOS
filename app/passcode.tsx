@@ -4,10 +4,12 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { logout, getCompanyUserInfo, loginWithAccessCode } from '../api/authApi';
+import { getRoomsByCompanyId } from '@/api/companyApi';
 
 export default function PasscodeScreen() {
   const [passcode, setPasscode] = useState('');
   const [companyId, setCompanyId] = useState('');
+  const [loading, setLoading] = useState(false)
 
   // Function to get company ID
   const fetchCompanyId = async () => {
@@ -18,6 +20,14 @@ export default function PasscodeScreen() {
       console.error("Error fetching company ID:", error);
     }
   };
+
+  const fetchRooms = async () => {
+          try {
+              await getRoomsByCompanyId();
+          } catch (error) {
+              console.error('Failed to fetch rooms:', error);
+          }
+      };
 
   useEffect(() => {
     fetchCompanyId();
@@ -30,7 +40,10 @@ export default function PasscodeScreen() {
     }
 
     try {
+      setLoading(true)
       await loginWithAccessCode(passcode, companyId);
+      await fetchRooms()
+      setLoading(false)
       router.replace('/room');
     } catch (error) {
       console.error("Login failed:", error);
@@ -80,7 +93,7 @@ export default function PasscodeScreen() {
               style={styles.submitButton}
               onPress={handleSubmit}
             >
-              <Text style={styles.submitButtonText}>Login</Text>
+              <Text style={styles.submitButtonText}>{loading ? "Loading..." : "Loading"}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

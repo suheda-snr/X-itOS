@@ -1,8 +1,13 @@
+import React from 'react';
+import { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ImageBackground } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { logout } from '../../api/authApi';
+import { getRoomsByCompanyId } from '@/api/companyApi';
+import { useCompanyStore } from '@/stateStore/companyStore';
+import { Room } from '@/types/room';
 
 const ROOMS = [
   { id: 1, title: 'Room Number 1' },
@@ -18,6 +23,11 @@ export default function RoomsScreen() {
     router.push('/welcome');
   };
 
+  const navigateToRoomDetails = (roomId: string) => {
+    useCompanyStore.getState().setChosenRoom(roomId)
+    router.push(`/room/${roomId}`)
+  }
+
   return (
     <ImageBackground
       source={{ uri: 'https://images.unsplash.com/photo-1585951237318-9ea5e175b891?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80' }}
@@ -32,12 +42,12 @@ export default function RoomsScreen() {
           <Text style={styles.title}>Select a Room</Text>
 
           <ScrollView style={styles.roomList} showsVerticalScrollIndicator={false}>
-            {ROOMS.map((room) => (
+            {useCompanyStore.getState().roomsData?.map((room: Room) => (
               <View key={room.id} style={styles.roomItem}>
-                <Text style={styles.roomTitle}>{room.title}</Text>
+                <Text style={styles.roomTitle}>{room.name}</Text>
                 <TouchableOpacity
                   style={styles.viewDetailsButton}
-                  onPress={() => router.push(`/room/${room.id}`)}
+                  onPress={() => navigateToRoomDetails(room.id)}
                 >
                   <Text style={styles.viewDetailsText}>View Details</Text>
                 </TouchableOpacity>
@@ -46,7 +56,8 @@ export default function RoomsScreen() {
           </ScrollView>
         </View>
 
-        <View style={styles.floatingButtonContainer}>
+      </LinearGradient>
+      <View style={styles.floatingButtonContainer}>
           <TouchableOpacity
             style={styles.floatingButton}
             onPress={handleAdminLogout}
@@ -54,8 +65,6 @@ export default function RoomsScreen() {
             <Ionicons name="log-out" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
-
-      </LinearGradient>
     </ImageBackground>
   );
 }

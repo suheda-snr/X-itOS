@@ -1,7 +1,9 @@
+import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, ImageBackground } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useCompanyStore } from '@/stateStore/companyStore';
 
 const ROOMS = {
   1: {
@@ -53,7 +55,7 @@ const ROOMS = {
 
 export default function RoomScreen() {
   const { id } = useLocalSearchParams();
-  const room = ROOMS[Number(id) as keyof typeof ROOMS];
+  const room = useCompanyStore.getState().chosenRoom
 
   const handleBookRoom = () => {
     // Navigate to booking screen
@@ -71,7 +73,7 @@ export default function RoomScreen() {
 
   return (
     <ImageBackground
-      source={{ uri: room.image }}
+      source={{ uri: 'https://images.unsplash.com/photo-1573652636601-d6fdcfc59640?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80' }}
       style={styles.container}
     >
       <LinearGradient
@@ -79,34 +81,34 @@ export default function RoomScreen() {
         style={styles.overlay}
       >
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <Text style={styles.roomTitle}>{room.title}</Text>
+          <Text style={styles.roomTitle}>{room?.name}</Text>
           
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
               <Ionicons name="time-outline" size={24} color="#ff4b8c" />
               <Text style={styles.infoLabel}>Duration</Text>
-              <Text style={styles.infoValue}>{room.duration}</Text>
+              <Text style={styles.infoValue}>TBA</Text>
             </View>
             <View style={styles.infoItem}>
               <Ionicons name="people-outline" size={24} color="#ff4b8c" />
               <Text style={styles.infoLabel}>Team Size</Text>
-              <Text style={styles.infoValue}>{room.teamSize}</Text>
+              <Text style={styles.infoValue}>TBA</Text>
             </View>
             <View style={styles.infoItem}>
               <Ionicons name="trending-up-outline" size={24} color="#ff4b8c" />
               <Text style={styles.infoLabel}>Success Rate</Text>
-              <Text style={styles.infoValue}>{room.successRate}</Text>
+              <Text style={styles.infoValue}>TBA</Text>
             </View>
             <View style={styles.infoItem}>
               <Ionicons name="star-outline" size={24} color="#ff4b8c" />
               <Text style={styles.infoLabel}>Difficulty</Text>
-              <Text style={styles.infoValue}>{room.difficulty}</Text>
+              <Text style={styles.infoValue}>TBA</Text>
             </View>
           </View>
 
           <View style={styles.descriptionContainer}>
             <Text style={styles.descriptionLabel}>Description</Text>
-            <Text style={styles.description}>{room.description}</Text>
+            <Text style={styles.description}>{room?.description}</Text>
           </View>
 
           <View style={styles.buttonContainer}>
