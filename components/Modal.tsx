@@ -14,7 +14,7 @@ const ModalComponent: React.FC<ModalComponentProps> = ({ visible, onClose, onSub
         <Modal transparent={true} visible={visible} animationType="fade" onRequestClose={onClose}>
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContainer}>
-                    <Text style={styles.modalTitle}>Enter Company Passcode</Text>
+                    <Text style={styles.modalTitle}>Passcode</Text>
                     <TextInput
                         style={styles.input}
                         value={passcode}

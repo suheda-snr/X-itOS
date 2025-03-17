@@ -1,16 +1,55 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, ImageBackground } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, ImageBackground, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCompanyStore } from '@/stateStore/companyStore';
 
 export default function RoomScreen() {
-  const room = useCompanyStore.getState().chosenRoom
+  const room = useCompanyStore(state => state.chosenRoom);
+  const selectedRoomForGame = useCompanyStore(state => state.selectedRoomForGame)
+  const isRoomReady = useCompanyStore(state => state.isRoomSet);
+  const setIsRoomSet = useCompanyStore(state => state.setIsRoomSet);
+  const setSelectedRoomForGame = useCompanyStore(state => state.setSelectedRoomForGame);
 
-  const handleBookRoom = () => {
-    // Navigate to booking screen
-    // router.push('/booking');
+  const handleSetRoom = () => {
+    if (isRoomReady) {
+      Alert.alert(
+        "Are you sure?",
+        `Are you sure you want to reset previously selected room? Currently the selected room's name: ${selectedRoomForGame?.name}`,
+        [
+          {
+            text: "No",
+            style: "cancel",
+          },
+          {
+            text: "Yes",
+            onPress: () => {
+              if (room) {
+                console.log("room info from screen!!!!! ")
+                console.log(room)
+                console.log("updating state...")
+                setSelectedRoomForGame(room);
+                Alert.alert("Success", "The room has been set up successfully");
+              } else {
+                Alert.alert("Error", "Error setting the room");
+              }
+            },
+          },
+        ],
+        { cancelable: true }
+      );
+    } else {
+      setIsRoomSet(true);
+      if (room) {
+        console.log("room info!!!!! ")
+        console.log(room)
+        setSelectedRoomForGame(room);
+        Alert.alert("Success", "The room has been set up successfully");
+      } else {
+        Alert.alert("Error", "Error setting the room");
+      }
+    }
   };
 
   const handleViewMap = () => {
@@ -64,10 +103,10 @@ export default function RoomScreen() {
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleBookRoom}
+              style={[styles.actionButton, isRoomReady && styles.secondaryButton]}
+              onPress={handleSetRoom}
             >
-              <Text style={styles.actionButtonText}>Book Room</Text>
+              <Text style={styles.actionButtonText}>{isRoomReady ? "Reset room" : "Set the room"}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -91,6 +130,9 @@ export default function RoomScreen() {
 }
 
 const styles = StyleSheet.create({
+  disabledButton: {
+    backgroundColor: '#ccc',
+  },
   container: {
     flex: 1,
   },

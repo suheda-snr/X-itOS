@@ -101,7 +101,7 @@ export default function PasscodeScreen() {
               style={styles.submitButton}
               onPress={handleSubmit}
             >
-              <Text style={styles.submitButtonText}>{loading ? "Loading..." : "Loading"}</Text>
+              <Text style={styles.submitButtonText}>{loading ? "Loading..." : "Login"}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

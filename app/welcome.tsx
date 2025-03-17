@@ -9,12 +9,14 @@ import ModalComponent from '@/components/Modal';
 
 export default function WelcomeScreen() {
   const [count, setCount] = useState(1);
-  const isRoomSet: boolean = true;
+  const isRoomSet = useCompanyStore(state => state.isRoomSet);
+  const companyName = useCompanyStore(state => state.companyData?.name);
   const [showModal, setShowModal] = useState(false);
   const [companyPasscode, setCompanyPasscode] = useState('');
-  const companyName = useCompanyStore.getState().companyData?.name;
-  const roomName = "Game Room 1";
   const companyId = useAuthStore.getState().companyUser?.companyId;
+  const room = useCompanyStore(state => state.selectedRoomForGame);
+  console.log("SELECTED ROOM STATE")
+  console.log(room)
 
   function navigateToPasscode() {
     if (count >= 5) {
@@ -48,7 +50,7 @@ export default function WelcomeScreen() {
           </Pressable>
 
           <View style={styles.roomTitleContainer}>
-            <Text style={styles.title}>{`Welcome to ${roomName}`}</Text>
+            <Text style={styles.title}>{isRoomSet ? `Welcome to ${room?.name}` : "Welcome"}</Text>
           </View>
         </View>
 
@@ -56,7 +58,7 @@ export default function WelcomeScreen() {
           {isRoomSet ? (
             <>
               <Text style={styles.subtitle}>
-                Scan your ticket QR code to begin your adventure in {roomName}
+                Scan your ticket QR code to begin your adventure in {room?.name}
               </Text>
               <TouchableOpacity
                 style={styles.startButton}

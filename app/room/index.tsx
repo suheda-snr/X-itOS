@@ -10,13 +10,14 @@ import { useCompanyStore } from '@/stateStore/companyStore';
 import { Room } from '@/types/room';
 
 export default function RoomsScreen() {
+  const setChosenRoom = useCompanyStore(state => state.setChosenRoom)
   const handleAdminLogout = async () => {
     await logout('admin');
     router.push('/welcome');
   };
 
   const navigateToRoomDetails = (roomId: string) => {
-    useCompanyStore.getState().setChosenRoom(roomId)
+    setChosenRoom(roomId)
     router.push(`/room/${roomId}`)
   }
 
