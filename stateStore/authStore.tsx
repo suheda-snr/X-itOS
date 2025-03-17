@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { AuthState } from '../types/authState';
+import { useCompanyStore } from './companyStore';
 
 const useAuthStore = create<AuthState>((set) => ({
     jwtCompany: null,
@@ -40,12 +41,14 @@ const useAuthStore = create<AuthState>((set) => ({
                 await SecureStore.deleteItemAsync('jwtAdmin');
                 await SecureStore.deleteItemAsync('adminUser');
                 set({ jwtCompany: null, companyUser: null, jwtAdmin: null, adminUser: null });
+                useCompanyStore.getState().setAllNull()
                 console.log('Company logged out successfully');
             } else if (role === 'admin') {
                 // Delete admin-related data
                 await SecureStore.deleteItemAsync('jwtAdmin');
                 await SecureStore.deleteItemAsync('adminUser');
                 set({ jwtAdmin: null, adminUser: null });
+                useCompanyStore.getState().setAllNull()
                 console.log('Admin logged out successfully');
             }
             // Optional: You can log both the role and the data that has been cleared if needed

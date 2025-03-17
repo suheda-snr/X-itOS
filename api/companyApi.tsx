@@ -35,7 +35,6 @@ export const getRoomsByCompanyId = async () => {
 
         const data = await response.json();
         const roomsById = data.filter((roomItem: Room) => roomItem.companyId == companyId)
-        console.log('Rooms data: ', roomsById);
         useCompanyStore.getState().setRoomsData(roomsById)
     } catch (error) {
         console.error('Error getting rooms data: ', error);

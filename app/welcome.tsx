@@ -7,11 +7,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 export default function WelcomeScreen() {
   const [count, setCount] = useState(1);
-  const isRoomSet: boolean = true;
-  const companyName = useCompanyStore.getState().companyData?.name
-  const roomName: string = "Game Room 1";
-  const [loading, setLoading] = useState(false)
-  
+  const isRoomSet = useCompanyStore(state => state.isRoomSet);
+  const companyName = useCompanyStore(state => state.companyData?.name);
+  const room = useCompanyStore(state => state.selectedRoomForGame);
+  console.log("SELECTED ROOM STATE")
+  console.log(room)
 
   function navigateToPasscode() {
     if (count >= 5) {
@@ -31,7 +31,7 @@ export default function WelcomeScreen() {
           </Pressable>
 
           <View style={styles.roomTitleContainer}>
-            <Text style={styles.title}>{isRoomSet ? `Welcome to ${roomName}` : "Welcome"}</Text>
+            <Text style={styles.title}>{isRoomSet ? `Welcome to ${room?.name}` : "Welcome"}</Text>
           </View>
         </View>
 
@@ -39,7 +39,7 @@ export default function WelcomeScreen() {
           {isRoomSet ? (
             <>
               <Text style={styles.subtitle}>
-                Scan your ticket QR code to begin your adventure in {roomName}
+                Scan your ticket QR code to begin your adventure in {room?.name}
               </Text>
               <TouchableOpacity
                 style={styles.startButton}

@@ -9,22 +9,15 @@ import { getRoomsByCompanyId } from '@/api/companyApi';
 import { useCompanyStore } from '@/stateStore/companyStore';
 import { Room } from '@/types/room';
 
-const ROOMS = [
-  { id: 1, title: 'Room Number 1' },
-  { id: 2, title: 'Room Number 2' },
-  { id: 3, title: 'Room Number 3' },
-  { id: 4, title: 'Room Number 4' },
-  { id: 5, title: 'Room Number 5' },
-];
-
 export default function RoomsScreen() {
+  const setChosenRoom = useCompanyStore(state => state.setChosenRoom)
   const handleAdminLogout = async () => {
     await logout('admin');
     router.push('/welcome');
   };
 
   const navigateToRoomDetails = (roomId: string) => {
-    useCompanyStore.getState().setChosenRoom(roomId)
+    setChosenRoom(roomId)
     router.push(`/room/${roomId}`)
   }
 
