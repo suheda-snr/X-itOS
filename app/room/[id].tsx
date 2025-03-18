@@ -49,7 +49,7 @@ export default function RoomScreen() {
 
   const handleViewMap = () => {
     // Navigate to map screen
-    router.push('/room/[id]/map');
+    router.push(`/room/map`);
   };
 
   const handleBackToRooms = () => {
