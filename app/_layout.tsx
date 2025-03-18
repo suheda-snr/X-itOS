@@ -24,6 +24,7 @@ export default function RootLayout() {
         <Stack.Screen name="passcode" options={{ title: "Enter Passcode" }} />
         <Stack.Screen name="room/index" options={{ title: "Room Selection" }} />
         <Stack.Screen name="room/[id]" options={{ title: "Room Details" }} />
+        <Stack.Screen name="/room/[id]/map" options={{ title: "Map" }} />
         <Stack.Screen name="/QRScanner/TicketQR" options={{ title: "Ticket Scanning" }} />
         <Stack.Screen name="/QRScanner/PersonalQR" options={{ title: "Personal QR" }} />
         <Stack.Screen name="GameStatistics/[TeamStats]" options={{ title: "Team Statistics" }} />
