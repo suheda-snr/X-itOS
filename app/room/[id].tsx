@@ -26,9 +26,6 @@ export default function RoomScreen() {
                 text: "Yes",
                 onPress: () => {
                   if (room) {
-                    console.log("room info from screen!!!!! ")
-                    console.log(room)
-                    console.log("updating state...")
                     setSelectedRoomForGame(room);
                     Alert.alert("Success", "The room has been set up successfully");
                   } else {
@@ -42,8 +39,6 @@ export default function RoomScreen() {
     }else{
       setIsRoomSet(true);
       if (room) {
-        console.log("room info!!!!! ")
-        console.log(room)
         setSelectedRoomForGame(room);
         Alert.alert("Success", "The room has been set up successfully");
       } else {
