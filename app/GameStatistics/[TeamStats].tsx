@@ -31,7 +31,7 @@ const timeLeft: number = Math.max(0, MAX_GAME_TIME - timeTaken);
 const TeamStats = () => {
     const [shareDecision, setShareDecision] = useState<boolean | null>(null);
     const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
-    const [isCompleted, setIsCompleted] = useState<boolean>(false);
+    const [isCompleted, setIsCompleted] = useState<boolean>(true);
 
     const handleSharePress = () => {
         setShareDecision(true);
