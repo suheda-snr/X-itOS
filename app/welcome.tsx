@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import useAuthStore from '@/stateStore/authStore';
 import { useCompanyStore } from '@/stateStore/companyStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { loginWithAccessCode } from '../api/authApi';
 import ModalComponent from '@/components/Modal';
+import { Button } from '@/components/elements/Button';
+import commonStyles, { colors } from '@/styles/common';
 
 export default function WelcomeScreen() {
   const [count, setCount] = useState(1);
@@ -15,8 +17,6 @@ export default function WelcomeScreen() {
   const [companyPasscode, setCompanyPasscode] = useState('');
   const companyId = useAuthStore.getState().companyUser?.companyId;
   const room = useCompanyStore(state => state.selectedRoomForGame);
-  console.log("SELECTED ROOM STATE")
-  console.log(room)
 
   function navigateToPasscode() {
     if (count >= 5) {
@@ -42,33 +42,41 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={['#1a1a1a', '#2a2a2a']} style={styles.gradient}>
-        <View style={styles.headerContainer}>
-          <Pressable onPress={navigateToPasscode} style={styles.headerPressable}>
-            <Text style={styles.headerTitle}>{companyName}</Text>
+    <View style={commonStyles.container}>
+      <LinearGradient
+        colors={[colors.dark1, colors.dark2]}
+        style={commonStyles.container}
+      >
+        <View style={commonStyles.layoutHeaderSection}>
+          <Pressable
+            onPress={navigateToPasscode}
+            style={commonStyles.headerPressable}
+          >
+            <Text style={commonStyles.layoutLargeTitle}>
+              {companyName}
+            </Text>
           </Pressable>
 
-          <View style={styles.roomTitleContainer}>
-            <Text style={styles.title}>{isRoomSet ? `Welcome to ${room?.name}` : "Welcome"}</Text>
+          <View style={commonStyles.layoutTitleContainer}>
+            <Text style={commonStyles.title}>
+              {isRoomSet ? `Welcome to ${room?.name}` : "Welcome"}
+            </Text>
           </View>
         </View>
 
-        <View style={styles.content}>
+        <View style={commonStyles.content}>
           {isRoomSet ? (
             <>
-              <Text style={styles.subtitle}>
+              <Text style={commonStyles.subtitle}>
                 Scan your ticket QR code to begin your adventure in {room?.name}
               </Text>
-              <TouchableOpacity
-                style={styles.startButton}
+              <Button
+                title="Begin Your Adventure"
                 onPress={() => router.push('/QRScanner/TicketQR')}
-              >
-                <Text style={styles.startButtonText}>Begin Your Adventure</Text>
-              </TouchableOpacity>
+              />
             </>
           ) : (
-            <Text style={styles.subtitle}>
+            <Text style={commonStyles.subtitle}>
               Room is not set for this device. Please navigate to the admin panel.
             </Text>
           )}
@@ -85,61 +93,3 @@ export default function WelcomeScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
-  gradient: {
-    flex: 1,
-  },
-  headerContainer: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-  },
-  headerPressable: {
-    paddingVertical: 15,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 40,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  roomTitleContainer: {
-    paddingVertical: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#ccc',
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 24,
-  },
-  startButton: {
-    backgroundColor: '#ff4b8c',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    width: '100%',
-  },
-  startButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-});

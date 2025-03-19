@@ -3,9 +3,9 @@ import { View, Text, TouchableOpacity, ImageBackground } from 'react-native';
 import { router } from 'expo-router';
 import { login } from '../../api/authApi';
 import { getCompanyName } from '@/api/companyApi';
-import { InputField } from '../../components/InputField';
-import { PasswordInputField } from '../../components/PasswordInputField';
-import { Button } from '../../components/Button';
+import { InputField } from '../../components/elements/InputField';
+import { PasswordInputField } from '../../components/elements/PasswordInputField';
+import { Button } from '../../components/elements/Button';
 import commonStyles from '../../styles/common';
 import React from 'react';
 
