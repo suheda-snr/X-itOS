@@ -8,34 +8,35 @@ import { loginWithAccessCode } from '../api/authApi';
 import ModalComponent from '@/components/Modal';
 import { Button } from '@/components/elements/Button';
 import commonStyles, { colors } from '@/styles/common';
+import { Room } from '@/types/room';
 
 export default function WelcomeScreen() {
-  const [count, setCount] = useState(1);
-  const isRoomSet = useCompanyStore(state => state.isRoomSet);
-  const companyName = useCompanyStore(state => state.companyData?.name);
-  const [showModal, setShowModal] = useState(false);
-  const [companyPasscode, setCompanyPasscode] = useState('');
+  const [count, setCount] = useState<number>(1);
+  const isRoomSet = useCompanyStore((state) => state.isRoomSet);
+  const companyName = useCompanyStore((state) => state.companyData?.name);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [companyPasscode, setCompanyPasscode] = useState<string>('');
   const companyId = useAuthStore.getState().companyUser?.companyId;
-  const room = useCompanyStore(state => state.selectedRoomForGame);
+  const room = useCompanyStore((state) => state.selectedRoomForGame) as Room | undefined;
 
   function navigateToPasscode() {
     if (count >= 5) {
       setCount(0);
       setShowModal(true);
     } else {
-      setCount(prevCount => prevCount + 1);
+      setCount((prevCount) => prevCount + 1);
     }
   }
 
   const handlePasscodeSubmit = async () => {
     try {
       if (!companyId) {
-        throw new Error("Company ID is undefined");
+        throw new Error('Company ID is undefined');
       }
       const token = await loginWithAccessCode(companyPasscode, companyId, 'company');
       router.push('/passcode');
     } catch (error) {
-      alert("Login failed. Please try again.");
+      alert('Login failed. Please try again.');
     } finally {
       setCompanyPasscode('');
     }
@@ -43,23 +44,15 @@ export default function WelcomeScreen() {
 
   return (
     <View style={commonStyles.container}>
-      <LinearGradient
-        colors={[colors.dark1, colors.dark2]}
-        style={commonStyles.container}
-      >
+      <LinearGradient colors={[colors.dark1, colors.dark2]} style={commonStyles.container}>
         <View style={commonStyles.layoutHeaderSection}>
-          <Pressable
-            onPress={navigateToPasscode}
-            style={commonStyles.headerPressable}
-          >
-            <Text style={commonStyles.layoutLargeTitle}>
-              {companyName}
-            </Text>
+          <Pressable onPress={navigateToPasscode} style={commonStyles.headerPressable}>
+            <Text style={commonStyles.layoutLargeTitle}>{companyName}</Text>
           </Pressable>
 
           <View style={commonStyles.layoutTitleContainer}>
             <Text style={commonStyles.title}>
-              {isRoomSet ? `Welcome to ${room?.name}` : "Welcome"}
+              {isRoomSet ? `Welcome to ${room?.name}` : 'Welcome'}
             </Text>
           </View>
         </View>
@@ -70,10 +63,7 @@ export default function WelcomeScreen() {
               <Text style={commonStyles.subtitle}>
                 Scan your ticket QR code to begin your adventure in {room?.name}
               </Text>
-              <Button
-                title="Begin Your Adventure"
-                onPress={() => router.push('/QRScanner/TicketQR')}
-              />
+              <Button title="Begin Your Adventure" onPress={() => router.push('/QRScanner/TicketQR')} />
             </>
           ) : (
             <Text style={commonStyles.subtitle}>
