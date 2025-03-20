@@ -13,30 +13,33 @@ export default function RoomScreen() {
   const setSelectedRoomForGame = useCompanyStore(state => state.setSelectedRoomForGame);
 
   const handleSetRoom = () => {
-    if(isRoomReady){
+    if (isRoomReady) {
       Alert.alert(
-          "Are you sure?",
-          `Are you sure you want to reset previously selected room? Currently the selected room's name: ${selectedRoomForGame?.name}`,
-          [
-              {
-                text: "No",
-                style: "cancel",
-              },
-              {
-                text: "Yes",
-                onPress: () => {
-                  if (room) {
-                    setSelectedRoomForGame(room);
-                    Alert.alert("Success", "The room has been set up successfully");
-                  } else {
-                    Alert.alert("Error", "Error setting the room");
-                  }
-                },
-              },
-            ],
-            { cancelable: true }
-          );
-    }else{
+        "Are you sure?",
+        `Are you sure you want to reset previously selected room? Currently the selected room's name: ${selectedRoomForGame?.name}`,
+        [
+          {
+            text: "No",
+            style: "cancel",
+          },
+          {
+            text: "Yes",
+            onPress: () => {
+              if (room) {
+                console.log("room info from screen!!!!! ")
+                console.log(room)
+                console.log("updating state...")
+                setSelectedRoomForGame(room);
+                Alert.alert("Success", "The room has been set up successfully");
+              } else {
+                Alert.alert("Error", "Error setting the room");
+              }
+            },
+          },
+        ],
+        { cancelable: true }
+      );
+    } else {
       setIsRoomSet(true);
       if (room) {
         setSelectedRoomForGame(room);
@@ -67,7 +70,7 @@ export default function RoomScreen() {
       >
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <Text style={styles.roomTitle}>{room?.name}</Text>
-          
+
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
               <Ionicons name="time-outline" size={24} color="#ff4b8c" />
@@ -97,14 +100,14 @@ export default function RoomScreen() {
           </View>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, isRoomReady && styles.secondaryButton]}
               onPress={handleSetRoom}
             >
               <Text style={styles.actionButtonText}>{isRoomReady ? "Reset room" : "Set the room"}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, styles.secondaryButton]}
               onPress={handleBackToRooms}
             >
@@ -112,7 +115,7 @@ export default function RoomScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.mapLink}
             onPress={handleViewMap}
           >
@@ -126,7 +129,7 @@ export default function RoomScreen() {
 
 const styles = StyleSheet.create({
   disabledButton: {
-    backgroundColor: '#ccc', 
+    backgroundColor: '#ccc',
   },
   container: {
     flex: 1,
