@@ -8,6 +8,7 @@ declare global {
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
+import React from 'react';
 
 export default function RootLayout() {
   useEffect(() => {

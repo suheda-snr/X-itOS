@@ -48,7 +48,6 @@ const useAuthStore = create<AuthState>((set) => ({
                 await SecureStore.deleteItemAsync('jwtAdmin');
                 await SecureStore.deleteItemAsync('adminUser');
                 set({ jwtAdmin: null, adminUser: null });
-                useCompanyStore.getState().setAllNull()
                 console.log('Admin logged out successfully');
             }
             // Optional: You can log both the role and the data that has been cleared if needed

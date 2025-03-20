@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import useAuthStore from '@/stateStore/authStore';
@@ -8,20 +9,19 @@ import { loginWithAccessCode } from '../api/authApi';
 import ModalComponent from '@/components/Modal';
 import { Button } from '@/components/elements/Button';
 import commonStyles, { colors } from '@/styles/common';
-import { Room } from '@/types/room';
 
 export default function WelcomeScreen() {
   const [count, setCount] = useState<number>(1);
   const isRoomSet = useCompanyStore((state) => state.isRoomSet);
-  const companyName = useCompanyStore((state) => state.companyData?.name);
+  const companyName = useCompanyStore.getState().companyData?.name;
   const [showModal, setShowModal] = useState<boolean>(false);
   const [companyPasscode, setCompanyPasscode] = useState<string>('');
   const companyId = useAuthStore.getState().companyUser?.companyId;
-  const room = useCompanyStore((state) => state.selectedRoomForGame) as Room | undefined;
+  const room = useCompanyStore(state => state.selectedRoomForGame);
 
   function navigateToPasscode() {
     if (count >= 5) {
-      setCount(0);
+      setCount(1);
       setShowModal(true);
     } else {
       setCount((prevCount) => prevCount + 1);
@@ -41,6 +41,13 @@ export default function WelcomeScreen() {
       setCompanyPasscode('');
     }
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      setShowModal(false);
+      setCompanyPasscode('');
+    }, [])
+  );
 
   return (
     <View style={commonStyles.container}>

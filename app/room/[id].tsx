@@ -42,6 +42,8 @@ export default function RoomScreen() {
     } else {
       setIsRoomSet(true);
       if (room) {
+        console.log("room info!!!!! ")
+        console.log(room)
         setSelectedRoomForGame(room);
         Alert.alert("Success", "The room has been set up successfully");
       } else {

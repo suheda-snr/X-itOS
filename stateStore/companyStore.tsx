@@ -9,13 +9,14 @@ export const useCompanyStore = create<CompanyState>((set, get) => ({
     chosenRoom: null,
     isRoomSet: false,
     selectedRoomForGame: null,
-    setCompanyData: (companyData: Company) => set({ companyData: companyData}),
-    setRoomsData: (roomsData: Room[]) => set({ roomsData: roomsData}),
+    setCompanyData: (companyData: Company) => set({ companyData: companyData }),
+    setRoomsData: (roomsData: Room[]) => set({ roomsData: roomsData }),
     setChosenRoom: (roomId: string) => {
-        const rooms = get().roomsData; 
+        const rooms = get().roomsData;
 
         const selectedRoom = rooms?.find(room => room.id == roomId);
         if (selectedRoom) {
+            console.log('Selected Room:', selectedRoom);
             set({ chosenRoom: selectedRoom });
         } else {
             set({ chosenRoom: null });
@@ -25,6 +26,7 @@ export const useCompanyStore = create<CompanyState>((set, get) => ({
     setIsRoomSet: (value: boolean) => set({ isRoomSet: value }),
     setSelectedRoomForGame: (roomData: Room) => {
         if (roomData) {
+            console.log('Selected Room for Game:', roomData);
             set({ selectedRoomForGame: roomData });
         } else {
             console.warn(`Room not found`);
@@ -37,4 +39,4 @@ export const useCompanyStore = create<CompanyState>((set, get) => ({
         isRoomSet: false,
         selectedRoomForGame: null,
     })
-}))
+}));
