@@ -2,6 +2,9 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ImageBackground }
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Button } from 'react-native';
+import {testFirestoreConnection} from '../firebase/testFirestore';
+import React from 'react';
 
 const ROOMS = [
   { id: 1, title: 'Room Number 1' },
@@ -35,6 +38,8 @@ export default function RoomsScreen() {
                 >
                   <Text style={styles.viewDetailsText}>View Details</Text>
                 </TouchableOpacity>
+                <Text>Firebase Connection Test</Text>
+                      <Button title="Test Firestore" onPress={testFirestoreConnection} />
               </View>
             ))}
           </ScrollView>
