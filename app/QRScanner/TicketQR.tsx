@@ -32,6 +32,7 @@ const TicketQR = () => {
         };
 
         try {
+            console.log('Creating game:', newGame);
             const createdGame = await createGame(newGame);
 
             router.push(`/playersinfoadding?teamName=${encodeURIComponent(teamName)}`);

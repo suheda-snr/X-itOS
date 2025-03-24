@@ -23,7 +23,9 @@ export const createGame = async (newGameData: Omit<Game, 'id'>) => {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to create game');
+            const errorData = await response.json();
+            console.error('API Error:', errorData);
+            throw new Error('Failed to create game: ' + JSON.stringify(errorData));
         }
 
         const createdGame: Game = await response.json();
