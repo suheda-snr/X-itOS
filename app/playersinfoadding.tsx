@@ -4,6 +4,7 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { Picker } from "@react-native-picker/picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { useGameStore } from "@/stateStore/gameStore";
 
 export interface Player {
   id: string;
@@ -12,7 +13,8 @@ export interface Player {
 }
 
 const PlayersInfoAddingScreen: React.FC = () => {
-  const [teamName, setTeamName] = useState<string>("Team1");
+  const { gameData, updateGameData } = useGameStore();
+  const teamName = gameData?.teamName || "Team Name";
   const [newTeamName, setNewTeamName] = useState(teamName);
   const [isEditingName, setIsEditingName] = useState(false);
   const [players, setPlayers] = useState<Player[]>([
@@ -32,11 +34,11 @@ const PlayersInfoAddingScreen: React.FC = () => {
   const handleEditName = () => setIsEditingName(true);
 
   const handleSaveName = () => {
-    if (newTeamName.length > 15) {
+    if ((newTeamName).length > 15) {
       Alert.alert("Invalid Name", "Team names longer than 15 characters are not valid.");
       return;
     }
-    setTeamName(newTeamName);
+    updateGameData({ teamName: newTeamName });
     setIsEditingName(false);
   };
 
@@ -163,4 +165,3 @@ const styles = StyleSheet.create({
 });
 
 export default PlayersInfoAddingScreen;
-
