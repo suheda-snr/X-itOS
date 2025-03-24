@@ -1,173 +1,117 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ImageBackground } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, ImageBackground, Text } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { logout, getCompanyUserInfo, loginWithAccessCode } from '../api/authApi';
+import { getRoomsByCompanyId } from '@/api/companyApi';
+import commonStyles, { colors } from '@/styles/common';
+import { PasswordInputField } from '@/components/elements/PasswordInputField';
+import { Button } from '@/components/elements/Button';
+import { IconButton } from '@/components/elements/IconButton';
+import { User } from '@/types/user';
 
-export default function PasscodeScreen() {
-  const [passcode, setPasscode] = useState('');
+const PasscodeScreen: React.FC = () => {
+  const [passcode, setPasscode] = useState<string>('');
+  const [companyId, setCompanyId] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleSubmit = () => {
-    // In a real app, you would validate the passcode here
-    router.replace('/room');
+  const fetchCompanyId = async (): Promise<void> => {
+    try {
+      const companyUser: User = await getCompanyUserInfo();
+      setCompanyId(companyUser.companyId);
+    } catch (error) {
+      console.error("Error fetching company ID:", error);
+    }
+  };
+
+  // Function to fetch rooms for the company
+  const fetchRooms = async (): Promise<void> => {
+    try {
+      await getRoomsByCompanyId();
+    } catch (error) {
+      console.error('Failed to fetch rooms:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanyId();
+  }, []);
+
+  const handleSubmit = async (): Promise<void> => {
+    if (!companyId || !passcode) {
+      console.error("Missing company ID or passcode");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const token = await loginWithAccessCode(passcode, companyId, 'admin');
+
+      if (!token) {
+        console.error("Login failed due to role mismatch");
+        setLoading(false);
+        return;
+      }
+
+      await fetchRooms();
+      setLoading(false);
+      router.replace('/room');
+    } catch (error) {
+      console.error("Login failed:", error);
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async (): Promise<void> => {
+    await logout('company');
+    router.push('/login');
   };
 
   return (
     <ImageBackground
       source={{ uri: 'https://images.unsplash.com/photo-1585951237318-9ea5e175b891?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80' }}
-      style={styles.container}
+      style={commonStyles.container}
     >
       <LinearGradient
-        colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']}
-        style={styles.overlay}
+        colors={[colors.dark1, colors.dark2]}
+        style={commonStyles.overlay}
       >
-        <View style={styles.header}>
-        </View>
+        <View style={commonStyles.header}></View>
 
-        <View style={styles.content}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>Enter Passcode</Text>
-            <Text style={styles.subtitle}>
-              Please enter the admin passcode to access admin panel.
+        <View style={[commonStyles.content, { justifyContent: 'center' }]}>
+          <View style={commonStyles.layoutTitleContainer}>
+            <Text style={commonStyles.subtitle}>
+              Please enter the admin passcode to access the admin panel.
             </Text>
           </View>
 
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Passcode</Text>
-              <TextInput
-                style={styles.input}
-                value={passcode}
-                onChangeText={setPasscode}
-                placeholder="Enter 6-digit passcode"
-                placeholderTextColor="#999"
-                keyboardType="number-pad"
-                secureTextEntry
-                maxLength={6}
-              />
-            </View>
+          <View style={commonStyles.form}>
+            <PasswordInputField
+              label="Passcode"
+              value={passcode}
+              onChangeText={setPasscode}
+              maxLength={6}
+              showToggle={false}
+              placeholder="Enter passcode"
+              style={{ textAlign: 'center' }}
+            />
 
-            <TouchableOpacity 
-          style={styles.submitButton}
-          onPress={handleSubmit}
-             >
-              <Text style={styles.submitButtonText}>login</Text>
-            </TouchableOpacity>
+            <Button
+              title={loading ? "Loading..." : "Login"}
+              onPress={handleSubmit}
+              disabled={loading}
+            />
 
-            <TouchableOpacity 
-              style={styles.backToRooms}
-              onPress={() => router.push('/(tabs)')}
-            >
-              <Text style={styles.backToRoomsText}>Back to Rooms</Text>
-            </TouchableOpacity>
+            <IconButton
+              title="Logout"
+              onPress={handleLogout}
+              iconName="log-out-outline"
+            />
           </View>
         </View>
       </LinearGradient>
     </ImageBackground>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  overlay: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 48,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#fff',
-    letterSpacing: 2,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  content: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-  },
-  titleContainer: {
-    gap: 16,
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 100,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#ccc',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  form: {
-    gap: 24,
-  },
-  inputContainer: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#fff',
-    marginLeft: 4,
-  },
-  input: {
-    height: 56,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#fff',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    textAlign: 'center',
-  },
-  submitButton: {
-    height: 56,
-    backgroundColor: 'rgba(255, 75, 140, 0.5)',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ff4b8c',
-  },
-  submitButtonActive: {
-    backgroundColor: '#ff4b8c',
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  backToRooms: {
-    alignSelf: 'center',
-    padding: 8,
-  },
-  backToRoomsText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-    textDecorationLine: 'underline',
-  },
-});
+export default PasscodeScreen;

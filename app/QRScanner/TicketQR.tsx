@@ -1,13 +1,43 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
 import { QRScanner } from '../../components/QRScanner';
+import { useCompanyStore } from '../../stateStore/companyStore';
+import { createGame } from '../../api/gameApi';
+
+// Helper function to generate a team name
+const generateTeamName = () => {
+    const randomNum = Math.floor(Math.random() * 1000);
+    return `Team ${randomNum}`;
+};
+
 
 const TicketQR = () => {
     const router = useRouter();
+    const chosenRoom = useCompanyStore((state) => state.chosenRoom);
 
-    const handleTicketScan = (data: string) => {
+    const handleTicketScan = async (data: string) => {
         console.log('Ticket QR Scanned:', data);
-        router.push('/playersinfoadding'); // Redirect to playersinfoadding
+
+        if (!chosenRoom) {
+            console.error('No room selected for the game');
+            return;
+        }
+
+        const teamName = generateTeamName();
+
+        const newGame = {
+            teamName,
+            roomId: chosenRoom.id,
+            bookingId: data,
+        };
+
+        try {
+            const createdGame = await createGame(newGame);
+
+            router.push(`/playersinfoadding?teamName=${encodeURIComponent(teamName)}`);
+        } catch (error) {
+            console.error('Error creating game:', error);
+        }
     };
 
     return (

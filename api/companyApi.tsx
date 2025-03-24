@@ -1,0 +1,43 @@
+import useAuthStore from "@/stateStore/authStore";
+import { useCompanyStore } from "@/stateStore/companyStore";
+import { Room } from "@/types/room";
+
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+
+export const getCompanyName = async () => {
+    try {
+        const companyId = useAuthStore.getState().companyUser?.companyId;
+        const response = await fetch(`${BASE_URL}/api/company/${companyId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        const data = await response.json();
+        console.log('Company data: ', data);
+        useCompanyStore.getState().setCompanyData(data)
+    } catch (error) {
+        console.error('Error getting company data: ', error);
+        throw error;
+    }
+}
+
+export const getRoomsByCompanyId = async () => {
+    try {
+        const companyId = useAuthStore.getState().companyUser?.companyId;
+        const response = await fetch(`${BASE_URL}/api/room/`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        const data = await response.json();
+        const roomsById = data.filter((roomItem: Room) => roomItem.companyId == companyId)
+        useCompanyStore.getState().setRoomsData(roomsById)
+    } catch (error) {
+        console.error('Error getting rooms data: ', error);
+        throw error;
+    }
+}

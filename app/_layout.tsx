@@ -8,6 +8,7 @@ declare global {
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
+import React from 'react';
 
 export default function RootLayout() {
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function RootLayout() {
         <Stack.Screen name="passcode" options={{ title: "Enter Passcode" }} />
         <Stack.Screen name="room/index" options={{ title: "Room Selection" }} />
         <Stack.Screen name="room/[id]" options={{ title: "Room Details" }} />
+        <Stack.Screen name="/room/map" options={{ title: "Map" }} />
         <Stack.Screen name="/QRScanner/TicketQR" options={{ title: "Ticket Scanning" }} />
         <Stack.Screen name="/QRScanner/PersonalQR" options={{ title: "Personal QR" }} />
         <Stack.Screen name="GameStatistics/[TeamStats]" options={{ title: "Team Statistics" }} />
