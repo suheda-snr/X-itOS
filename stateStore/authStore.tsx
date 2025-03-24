@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { AuthState } from '../types/authState';
+import { useCompanyStore } from './companyStore';
 
 const useAuthStore = create<AuthState>((set) => ({
     jwtCompany: null,
@@ -40,6 +41,7 @@ const useAuthStore = create<AuthState>((set) => ({
                 await SecureStore.deleteItemAsync('jwtAdmin');
                 await SecureStore.deleteItemAsync('adminUser');
                 set({ jwtCompany: null, companyUser: null, jwtAdmin: null, adminUser: null });
+                useCompanyStore.getState().setAllNull()
                 console.log('Company logged out successfully');
             } else if (role === 'admin') {
                 // Delete admin-related data

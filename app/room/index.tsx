@@ -1,132 +1,62 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ImageBackground } from 'react-native';
+import React from 'react';
+import { useCompanyStore } from '@/stateStore/companyStore';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { ImageBackground, ScrollView, Text, View, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { IconButton } from '@/components/elements/IconButton';
 import { logout } from '../../api/authApi';
-
-const ROOMS = [
-  { id: 1, title: 'Room Number 1' },
-  { id: 2, title: 'Room Number 2' },
-  { id: 3, title: 'Room Number 3' },
-  { id: 4, title: 'Room Number 4' },
-  { id: 5, title: 'Room Number 5' },
-];
+import { Room } from '@/types/room';
+import commonStyles from '@/styles/common';
+import roomStyles from '@/styles/room';
 
 export default function RoomsScreen() {
+  const setChosenRoom = useCompanyStore(state => state.setChosenRoom);
+
   const handleAdminLogout = async () => {
     await logout('admin');
     router.push('/welcome');
   };
 
+  const navigateToRoomDetails = (roomId: string) => {
+    setChosenRoom(roomId);
+    router.push(`/room/${roomId}`);
+  };
+
   return (
     <ImageBackground
-      source={{ uri: 'https://images.unsplash.com/photo-1585951237318-9ea5e175b891?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80' }}
-      style={styles.container}
+      source={{
+        uri: 'https://images.unsplash.com/photo-1585951237318-9ea5e175b891?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
+      }}
+      style={commonStyles.container}
     >
-      <LinearGradient
-        colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']}
-        style={styles.overlay}
-      >
+      <LinearGradient colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']} style={commonStyles.overlay}>
+        <ScrollView >
 
-        <View style={styles.content}>
-          <Text style={styles.title}>Select a Room</Text>
-
-          <ScrollView style={styles.roomList} showsVerticalScrollIndicator={false}>
-            {ROOMS.map((room) => (
-              <View key={room.id} style={styles.roomItem}>
-                <Text style={styles.roomTitle}>{room.title}</Text>
+          <View style={commonStyles.content}>
+            <Text style={commonStyles.title}>Select a Room</Text>
+            {useCompanyStore.getState().roomsData?.map((room: Room) => (
+              <View key={room.id} style={roomStyles.roomItem}>
+                <Text style={roomStyles.roomTitle}>{room.name}</Text>
                 <TouchableOpacity
-                  style={styles.viewDetailsButton}
-                  onPress={() => router.push(`/room/${room.id}`)}
+                  style={roomStyles.viewDetailsButton}
+                  onPress={() => navigateToRoomDetails(room.id)}
                 >
-                  <Text style={styles.viewDetailsText}>View Details</Text>
+                  <Text style={roomStyles.viewDetailsText}>View Details</Text>
                 </TouchableOpacity>
               </View>
             ))}
-          </ScrollView>
-        </View>
 
-        <View style={styles.floatingButtonContainer}>
-          <TouchableOpacity
-            style={styles.floatingButton}
-            onPress={handleAdminLogout}
-          >
-            <Ionicons name="log-out" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
+            <View style={commonStyles.form}>
+              <IconButton
+                title="Logout"
+                onPress={handleAdminLogout}
+                iconName="log-out-outline"
+              />
+            </View>
 
+          </View>
+        </ScrollView>
       </LinearGradient>
     </ImageBackground>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  overlay: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  roomList: {
-    maxHeight: '100%',
-  },
-  roomItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginBottom: 20, // Increased space after each room item
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  roomTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#fff',
-  },
-  viewDetailsButton: {
-    backgroundColor: '#ff4b8c',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  viewDetailsText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#fff',
-  },
-  floatingButtonContainer: {
-    position: 'absolute',
-    bottom: 24,
-    left: 24,
-    right: 24,
-    alignItems: 'center',
-  },
-  floatingButton: {
-    width: '100%', // Make the button rectangular (full width)
-    height: 50, // Set a specific height
-    borderRadius: 10, // Adjust the corner radius for a rectangular shape
-    backgroundColor: '#ff4b8c',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-});

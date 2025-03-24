@@ -78,6 +78,12 @@ const styles = StyleSheet.create({
     marginTop: 40,
     color: "#ff4b8c",
   },
+  redirectText: {
+    fontSize: 18,
+    color: "#ff4b8c",
+    marginTop: 20,
+    textDecorationLine: "underline",
+  },
 });
 
 export default TeamInfoScreen;
