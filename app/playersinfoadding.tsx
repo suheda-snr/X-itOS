@@ -5,30 +5,48 @@ import { Picker } from "@react-native-picker/picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useGameStore } from "@/stateStore/gameStore";
-
-export interface Player {
-  id: string;
-  name: string;
-  role: "Adult" | "Child" | "";
-}
+import { Player } from "@/types/player";
+import { addGuestPlayer } from "@/api/gameApi";
 
 const PlayersInfoAddingScreen: React.FC = () => {
   const { gameData, updateGameData } = useGameStore();
   const teamName = gameData?.teamName || "Team Name";
   const [newTeamName, setNewTeamName] = useState(teamName);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [players, setPlayers] = useState<Player[]>([
-    { id: "1", name: "John Doe", role: "Adult" },
-    { id: "2", name: "Jane Doe", role: "Adult" },
-    { id: "3", name: "Johnathan Doe", role: "Child" },
-  ]);
+  // const players = useGameStore(state => state.playersData)
+  // const setPlayers = useGameStore(state => state.setPlayersData)
+  // const singlePlayer = useGameStore(state => state.singlePlayer)
+  // const setSinglePlayer = useGameStore(state => state.setSinglePlayer)
+  // const setPlayerNull = useGameStore(state => state.setPlayerNull)
+
+  const useGameStoreValues = useGameStore((state) => ({
+      playersData: state.playersData,
+      setPlayersData: state.setPlayersData,
+  }));
+
+  const { playersData, setPlayersData } = useGameStoreValues;
 
   const updatePlayerRole = (id: string, role: "Adult" | "Child" | ""): void => {
-    setPlayers(players.map(player => (player.id === id ? { ...player, role } : player)));
+    const isAdult = role === "Adult";
+    const updatedUser = playersData?.map((player) =>
+      player.id === id ? { ...player, isAdult } : player
+    )
+
+    if(updatedUser){
+      setPlayersData(updatedUser[0]);
+    }else{
+      console.log("updatePlayerRole: No user found")
+    }
   };
 
-  const addGuest = (): void => {
-    setPlayers([...players, { id: Date.now().toString(), name: `Guest ${players.length + 1}`, role: "" }]);
+  const addGuest = async(): Promise<void> => {
+    const addedPlayer = await addGuestPlayer()
+
+    if (addedPlayer) {
+      setPlayersData(addedPlayer);
+    } else {
+      console.error("addGuest: Failed to add player");
+    }
   };
 
   const handleEditName = () => setIsEditingName(true);
@@ -50,7 +68,7 @@ const PlayersInfoAddingScreen: React.FC = () => {
   };
 
   function startTheGame() {
-    if (players.filter(player => player.role == "").length == 0) {
+    if (playersData?.map(player => player.isGuest === true).length == 0) {
       Alert.alert(
         "Are you sure?",
         "Are you sure you want to start the game?",
@@ -62,7 +80,7 @@ const PlayersInfoAddingScreen: React.FC = () => {
           {
             text: "Yes",
             onPress: () => {
-              const playersParam = JSON.stringify(players);
+              const playersParam = JSON.stringify(playersData);
               const teamNameParam = JSON.stringify(teamName);
               router.push(`/teaminfo?players=${encodeURIComponent(playersParam)}&teamName=${encodeURIComponent(teamNameParam)}`);
             },
@@ -100,20 +118,20 @@ const PlayersInfoAddingScreen: React.FC = () => {
         )}
       </View>
 
-      <Text style={styles.subtitle}>Players: {players.length}</Text>
+      <Text style={styles.subtitle}>Players: {playersData?.length}</Text>
 
       <FlatList
-        data={players}
-        keyExtractor={(item) => item.id}
+        data={playersData}
+        keyExtractor={(item) => item.gameId}
         renderItem={({ item }) => (
           <View style={styles.playerRow}>
             <FontAwesome5 name="user" size={20} color="#ff4b8c" style={styles.icon} />
-            <Text style={styles.playerName}>{item.name}</Text>
+            <Text style={styles.playerName}>{item.isGuest ? "Guest player" : item.id}</Text>
             <Picker
-              selectedValue={item.role}
-              style={item.name.startsWith("Guest") ? styles.picker : styles.pickerNotAvailable}
+              selectedValue={item.isAdult ? "Adult" : "Child"}
+              style={item.isGuest ? styles.picker : styles.pickerNotAvailable}
               onValueChange={(value) => updatePlayerRole(item.id, value as "Adult" | "Child" | "")}
-              enabled={item.name.startsWith("Guest")}
+              enabled={!item.isGuest}
             >
               <Picker.Item label="Choose..." value="" />
               <Picker.Item label="Adult" value="Adult" />

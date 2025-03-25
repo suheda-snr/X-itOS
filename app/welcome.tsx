@@ -70,7 +70,7 @@ export default function WelcomeScreen() {
               <Text style={commonStyles.subtitle}>
                 Scan your ticket QR code to begin your adventure in {room?.name}
               </Text>
-              <Button title="Begin Your Adventure" onPress={() => router.push('/QRScanner/TicketQR')} />
+              <Button title="Begin Your Adventure" onPress={() => router.push('/playersinfoadding')} />
             </>
           ) : (
             <Text style={commonStyles.subtitle}>
