@@ -42,3 +42,44 @@ export const createGame = async (newGameData: Omit<Game, 'id'>) => {
         throw error;
     }
 };
+
+
+export const updateGameData = async (updatedFields: Partial<Game>) => {
+    try {
+        const jwtCompany = useAuthStore.getState().jwtCompany;
+        const currentGameData = useGameStore.getState().gameData;
+
+        if (!jwtCompany || !currentGameData) {
+            console.error('JWT token or game data not found. User is not authenticated or game is not set.');
+            return;
+        }
+
+        const fullUpdatedGame = { ...currentGameData, ...updatedFields };
+
+        const response = await fetch(`${BASE_URL}/api/game/${currentGameData.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtCompany}`,
+            },
+            body: JSON.stringify(fullUpdatedGame),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.log('API Error:', errorData);
+            throw new Error('Error updating game. Please try again later.');
+        }
+
+        const updatedGame: Game = await response.json();
+        console.log('Updated Game:', updatedGame);
+
+        // Store the fully updated game data
+        useGameStore.getState().setGameData(updatedGame);
+
+        return updatedGame;
+    } catch (error) {
+        console.log('Error updating game:', error);
+        throw error;
+    }
+};
