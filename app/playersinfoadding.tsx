@@ -22,9 +22,11 @@ const PlayersInfoAddingScreen: React.FC = () => {
   const useGameStoreValues = useGameStore((state) => ({
       playersData: state.playersData,
       setPlayersData: state.setPlayersData,
+      guestsData: state.guestsData,
+      setGuestsData: state.setGuestsData
   }));
 
-  const { playersData, setPlayersData } = useGameStoreValues;
+  const { playersData, setPlayersData, guestsData, setGuestsData } = useGameStoreValues;
 
   const updatePlayerRole = (id: string, role: "Adult" | "Child" | ""): void => {
     const isAdult = role === "Adult";
