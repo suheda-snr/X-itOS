@@ -24,8 +24,8 @@ export const createGame = async (newGameData: Omit<Game, 'id'>) => {
 
         if (!response.ok) {
             const errorData = await response.json();
-            console.error('API Error:', errorData);
-            throw new Error('Failed to create game: ' + JSON.stringify(errorData));
+            console.log('API Error:', errorData);
+            throw new Error('Error creating game. Please try again later.');
         }
 
         const createdGame: Game = await response.json();
@@ -38,7 +38,7 @@ export const createGame = async (newGameData: Omit<Game, 'id'>) => {
 
         return createdGame;
     } catch (error) {
-        console.error('Error creating game:', error);
+        console.log('Error creating game:', error);
         throw error;
     }
 };
