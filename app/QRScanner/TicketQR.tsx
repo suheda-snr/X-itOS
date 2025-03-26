@@ -2,7 +2,8 @@ import React from 'react';
 import { useRouter } from 'expo-router';
 import { QRScanner } from '../../components/QRScanner';
 import { useCompanyStore } from '../../stateStore/companyStore';
-import { createGame } from '../../api/gameApi';
+import { addPlayerWithAccount, createGame, getBookingDetails } from '../../api/gameApi';
+import { useGameStore } from '@/stateStore/gameStore';
 
 // Helper function to generate a team name
 const generateTeamName = () => {
@@ -34,7 +35,10 @@ const TicketQR = () => {
         try {
             console.log('Creating game:', newGame);
             const createdGame = await createGame(newGame);
-
+            //for automated user adding
+            //await getBookingDetails(createdGame.bookingId)
+            //TBA getting userid
+            //await addPlayerWithAccount(useGameStore.getState().bookingDetails?.user)
             router.push(`/playersinfoadding?teamName=${encodeURIComponent(teamName)}`);
         } catch (error) {
             console.error('Error creating game:', error);

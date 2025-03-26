@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { View, Text, FlatList, StyleSheet } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useGameStore } from '@/stateStore/gameStore';
 
 interface Player {
   id: string;
@@ -15,6 +16,7 @@ function TeamInfoScreen() {
   const { teamName, players } = useLocalSearchParams();
   const parsedTeamName: string = teamName ? JSON.parse(teamName as string) : "";
   const parsedPlayers: Player[] = players ? JSON.parse(players as string) : [];
+  const displayPlayers = useGameStore(state => state.displayPlayers)
 
   const router = useRouter();
 
@@ -27,7 +29,7 @@ function TeamInfoScreen() {
       <Text style={styles.teamName}>{parsedTeamName}</Text>
 
       <FlatList
-        data={parsedPlayers}
+        data={displayPlayers}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.playerRow}>

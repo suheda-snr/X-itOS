@@ -5,50 +5,50 @@ import { Picker } from "@react-native-picker/picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useGameStore } from "@/stateStore/gameStore";
-import { Player } from "@/types/player";
-import { addGuestPlayer } from "@/api/gameApi";
+import { DisplayPlayers, Player } from "@/types/player";
+import { addGuestPlayers } from "@/api/gameApi";
+import { v4 as uuidv4 } from 'uuid';
+
+
 
 const PlayersInfoAddingScreen: React.FC = () => {
+  var crypto: Crypto
   const { gameData, updateGameData } = useGameStore();
   const teamName = gameData?.teamName || "Team Name";
   const [newTeamName, setNewTeamName] = useState(teamName);
   const [isEditingName, setIsEditingName] = useState(false);
-  // const players = useGameStore(state => state.playersData)
-  // const setPlayers = useGameStore(state => state.setPlayersData)
-  // const singlePlayer = useGameStore(state => state.singlePlayer)
-  // const setSinglePlayer = useGameStore(state => state.setSinglePlayer)
-  // const setPlayerNull = useGameStore(state => state.setPlayerNull)
-
-  const useGameStoreValues = useGameStore((state) => ({
-      playersData: state.playersData,
-      setPlayersData: state.setPlayersData,
-      guestsData: state.guestsData,
-      setGuestsData: state.setGuestsData
-  }));
-
-  const { playersData, setPlayersData, guestsData, setGuestsData } = useGameStoreValues;
+  const playersData = useGameStore(state => state.playersData)
+  const setPlayersData = useGameStore(state => state.setPlayersData)
+  const displayPlayers = useGameStore(state => state.displayPlayers)
+  const setDisplayPlayers = useGameStore(state => state.setDisplayPlayers)
 
   const updatePlayerRole = (id: string, role: "Adult" | "Child" | ""): void => {
     const isAdult = role === "Adult";
-    const updatedUser = playersData?.map((player) =>
-      player.id === id ? { ...player, isAdult } : player
+    const updatedUser = displayPlayers?.map((player) =>
+      player.id === id ? setDisplayPlayers({ ...player, isAdult: isAdult }) : setDisplayPlayers(player)
     )
+    console.log("updatedUser")
 
-    if(updatedUser){
-      setPlayersData(updatedUser[0]);
-    }else{
-      console.log("updatePlayerRole: No user found")
-    }
+    console.log(displayPlayers)
+
+    // if(updatedUser){
+    //   setDisplayPlayers(updatedUser[0]);
+    //   console.log("ISADULT????   " + isAdult)
+    //   console.log(displayPlayers)
+    // }else{
+    //   console.log("updatePlayerRole: No user found")
+    // }
   };
 
-  const addGuest = async(): Promise<void> => {
-    const addedPlayer = await addGuestPlayer()
-
-    if (addedPlayer) {
-      setPlayersData(addedPlayer);
-    } else {
-      console.error("addGuest: Failed to add player");
+  const addGuest = () => {
+    const newGuest: DisplayPlayers = { 
+      id: `${displayPlayers.length * 2}`,
+      name: `Guest ${displayPlayers.length + 1}`,
+      isGuest: true,
+      isAdult: null
     }
+
+    setDisplayPlayers(newGuest)
   };
 
   const handleEditName = () => setIsEditingName(true);
@@ -69,8 +69,9 @@ const PlayersInfoAddingScreen: React.FC = () => {
     );
   };
 
-  function startTheGame() {
-    if (playersData?.map(player => player.isGuest === true).length == 0) {
+  async function startTheGame() {
+    console.log(displayPlayers)
+    if (displayPlayers?.filter(player => player.isAdult === null).length == 0) {
       Alert.alert(
         "Are you sure?",
         "Are you sure you want to start the game?",
@@ -81,9 +82,11 @@ const PlayersInfoAddingScreen: React.FC = () => {
           },
           {
             text: "Yes",
-            onPress: () => {
+            onPress: async () => {
               const playersParam = JSON.stringify(playersData);
               const teamNameParam = JSON.stringify(teamName);
+              //TBA fixing types 
+              await addGuestPlayers(displayPlayers)
               router.push(`/teaminfo?players=${encodeURIComponent(playersParam)}&teamName=${encodeURIComponent(teamNameParam)}`);
             },
           },
@@ -120,20 +123,20 @@ const PlayersInfoAddingScreen: React.FC = () => {
         )}
       </View>
 
-      <Text style={styles.subtitle}>Players: {playersData?.length}</Text>
+      <Text style={styles.subtitle}>Players: {displayPlayers?.length}</Text>
 
       <FlatList
-        data={playersData}
-        keyExtractor={(item) => item.gameId}
+        data={displayPlayers}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.playerRow}>
             <FontAwesome5 name="user" size={20} color="#ff4b8c" style={styles.icon} />
-            <Text style={styles.playerName}>{item.isGuest ? "Guest player" : item.id}</Text>
+            <Text style={styles.playerName}>{item.name}</Text>
             <Picker
-              selectedValue={item.isAdult ? "Adult" : "Child"}
+              selectedValue={item.isAdult === null ? "" : item.isAdult ? "Adult" : "Child"}
               style={item.isGuest ? styles.picker : styles.pickerNotAvailable}
-              onValueChange={(value) => updatePlayerRole(item.id, value as "Adult" | "Child" | "")}
-              enabled={!item.isGuest}
+              onValueChange={(value) => updatePlayerRole(item.id, value)}
+              enabled={item.isGuest}
             >
               <Picker.Item label="Choose..." value="" />
               <Picker.Item label="Adult" value="Adult" />
