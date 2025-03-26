@@ -42,3 +42,10 @@ export interface ModalComponentProps {
     passcode: string;
     setPasscode: (passcode: string) => void;
 }
+
+export interface QRScannerProps {
+    title: string;
+    subtitle: string;
+    onScan: (data: string) => void;
+    scannerType: 'ticket' | 'personal';
+}

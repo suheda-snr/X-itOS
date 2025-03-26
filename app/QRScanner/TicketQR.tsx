@@ -1,5 +1,6 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
+import { Alert } from 'react-native'; // Import Alert from react-native
 import { QRScanner } from '../../components/QRScanner';
 import { useCompanyStore } from '../../stateStore/companyStore';
 import { createGame } from '../../api/gameApi';
@@ -10,7 +11,6 @@ const generateTeamName = () => {
     return `Team ${randomNum}`;
 };
 
-
 const TicketQR = () => {
     const router = useRouter();
     const chosenRoom = useCompanyStore((state) => state.chosenRoom);
@@ -19,7 +19,7 @@ const TicketQR = () => {
         console.log('Ticket QR Scanned:', data);
 
         if (!chosenRoom) {
-            console.error('No room selected for the game');
+            Alert.alert('Error', 'No room selected for the game');
             return;
         }
 
@@ -32,11 +32,16 @@ const TicketQR = () => {
         };
 
         try {
+            console.log('Creating game:', newGame);
             const createdGame = await createGame(newGame);
 
             router.push(`/playersinfoadding?teamName=${encodeURIComponent(teamName)}`);
-        } catch (error) {
-            console.error('Error creating game:', error);
+        } catch (error: any) {
+            console.log('Error creating game:', error);
+            const errorMessage = error.message.includes('Game can only be created for scheduled bookings')
+                ? 'Oops! We couldn’t process this QR code. Please ensure your booking valid and scheduled.'
+                : error.message || 'Failed to create game. Please try again.';
+            Alert.alert('Error', errorMessage);
         }
     };
 

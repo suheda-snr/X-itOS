@@ -5,6 +5,7 @@ import { Picker } from "@react-native-picker/picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useGameStore } from "@/stateStore/gameStore";
+import { updateGameData } from "@/api/gameApi";
 
 export interface Player {
   id: string;
@@ -13,7 +14,7 @@ export interface Player {
 }
 
 const PlayersInfoAddingScreen: React.FC = () => {
-  const { gameData, updateGameData } = useGameStore();
+  const { gameData, updateGameData: updateStoreGameData } = useGameStore();
   const teamName = gameData?.teamName || "Team Name";
   const [newTeamName, setNewTeamName] = useState(teamName);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -33,13 +34,37 @@ const PlayersInfoAddingScreen: React.FC = () => {
 
   const handleEditName = () => setIsEditingName(true);
 
-  const handleSaveName = () => {
-    if ((newTeamName).length > 15) {
+  const handleSaveName = async () => {
+    if (newTeamName.length > 15) {
       Alert.alert("Invalid Name", "Team names longer than 15 characters are not valid.");
       return;
     }
-    updateGameData({ teamName: newTeamName });
-    setIsEditingName(false);
+
+    Alert.alert(
+      "Confirm Change",
+      `Are you sure you want to change the team name to "${newTeamName}"?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Confirm",
+          onPress: async () => {
+            try {
+              await updateGameData({
+                teamName: newTeamName,
+              });
+              updateStoreGameData({ teamName: newTeamName });
+              setIsEditingName(false);
+            } catch (error) {
+              console.log("Error updating team name:", error);
+              Alert.alert("Error", "Failed to update team name. Please try again.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   const showInstructions = () => {
