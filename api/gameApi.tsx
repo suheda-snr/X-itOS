@@ -90,28 +90,51 @@ export const addGuestPlayers = async (players: DisplayPlayers[]) => {
             return;
         }
 
-        const requests = players.filter(player => player.isGuest === true).map(player=>{
-            const newPlayer = {
-                gameId: useGameStore.getState().gameData?.id, 
-                isGuest: true,
-                isAdult: player.isAdult
-            }
+        // const requests = players.filter(player => player.isGuest === true).map(player=>{
+        //     const newPlayer = {
+        //         gameId: useGameStore.getState().gameData?.id, 
+        //         isGuest: true,
+        //         isAdult: player.isAdult
+        //     }
 
-            fetch(`${BASE_URL}/api/player`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${jwtCompany}`,
-                },
-                body: JSON.stringify(newPlayer),
-            }).then(async response => {
+        //     fetch(`${BASE_URL}/api/player`, {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             'Authorization': `Bearer ${jwtCompany}`,
+        //         },
+        //         body: JSON.stringify(newPlayer),
+        //     }).then(async response => {
+        //         if (!response.ok) {
+        //             throw new Error(`Failed to add player: ${JSON.stringify(player)}`);
+        //         }
+        //         return response.json();
+        //     })
+        // }
+        // );
+        const requests = players
+            .filter(player => player.isGuest === true)
+            .map(player => {
+                const newPlayer = {
+                    gameId: useGameStore.getState().gameData?.id, 
+                    isGuest: true,
+                    isAdult: player.isAdult
+                };
+
+                return fetch(`${BASE_URL}/api/player`, { 
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${jwtCompany}`,
+                    },
+                    body: JSON.stringify(newPlayer),
+                }).then(async response => {
                 if (!response.ok) {
                     throw new Error(`Failed to add player: ${JSON.stringify(player)}`);
                 }
-                return response.json();
-            })
-        }
-        );
+                return response.json(); 
+                });
+            });
 
         const addedPlayers: Player[] = await Promise.all(requests);
 
