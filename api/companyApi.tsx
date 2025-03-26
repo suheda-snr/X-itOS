@@ -24,12 +24,15 @@ export const getCompanyName = async () => {
 }
 
 export const getRoomsByCompanyId = async () => {
+    const jwtCompany = useAuthStore.getState().jwtCompany;
     try {
         const companyId = useAuthStore.getState().companyUser?.companyId;
         const response = await fetch(`${BASE_URL}/api/room/`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtCompany}`,
+
             },
         });
 
