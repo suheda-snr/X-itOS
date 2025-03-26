@@ -2,50 +2,147 @@ import React, { useRef, useState, useEffect } from "react";
 import { View, StyleSheet, Animated, PanResponder, Pressable, Text, Button } from "react-native";
 import Svg, { Rect, Circle, Text as SvgText, Line } from "react-native-svg";
 import { Alert } from "react-native";
-import { fetchPuzzles } from '../firebase/puzzle';
-import { doc, updateDoc, collection, getDocs } from "firebase/firestore"; // Import Firestore utilities
-import { db } from '../firebase/firebaseConfig';
+import { doc, updateDoc, collection, onSnapshot, getDocs } from "firebase/firestore";
+import { db } from "../firebase/firebaseConfig";
+
+interface Hint {
+  message: string;
+  isShared: boolean;
+}
+
+interface Stage {
+  piece?: {
+    id: number;
+    type: string;
+    isInteracted: boolean;
+  };
+  actions?: {
+    action: string;
+    description: string;
+    isActivated: boolean;
+  };
+  interacted_sensor?: string;
+  hints?: Record<string, Hint>;
+}
+
+interface Puzzle {
+  id: string;
+  description: string;
+  isSolved: boolean;
+  solution: string;
+  stages: Record<string, Stage>;
+}
+
+interface Sensor {
+  id: string;
+  type: string;
+  isActive: boolean;
+}
 
 const Map: React.FC = () => {
   const scale = useRef(new Animated.Value(1)).current;
   const translateX = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
   const [openItem, setOpenItem] = useState<string | null>(null);
-  const [puzzles, setPuzzles] = useState<any[]>([]);
-  const [sensors, setSensors] = useState<any[]>([]); // State to hold sensor data
+  const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
+  const puzzlesRef = useRef<Puzzle[]>([]); // Ref to hold latest puzzles state
+  const [sensors, setSensors] = useState<Sensor[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout[]>([]);
+  const timerRef = useRef<Array<NodeJS.Timeout | Unsubscribe>>([]);
 
-  // Fetch puzzles and sensors from Firebase on component mount
+  // Sync puzzlesRef with puzzles state
   useEffect(() => {
-    const loadData = async () => {
-      // Fetch puzzles
-      const fetchedPuzzles = await fetchPuzzles();
-      if (fetchedPuzzles) {
-        setPuzzles(fetchedPuzzles);
-      }
+    puzzlesRef.current = puzzles;
+  }, [puzzles]);
 
-      // Fetch sensors
-      const sensorsCollection = collection(db, "sensors");
-      const sensorsDocs = await getDocs(sensorsCollection);
-      const sensorsData = sensorsDocs.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  useEffect(() => {
+    const puzzlesUnsubscribe = onSnapshot(collection(db, "puzzles"), (snapshot) => {
+      const puzzlesData = snapshot.docs.map((docSnapshot) => {
+        const puzzle: Puzzle = {
+          id: docSnapshot.id,
+          ...(docSnapshot.data() as Omit<Puzzle, "id" | "stages">),
+          stages: {},
+        };
+
+        const stagesUnsubscribe = onSnapshot(
+          collection(docSnapshot.ref, "stages"),
+          (stagesSnapshot) => {
+            const stages: Record<string, Stage> = {};
+            stagesSnapshot.docs.forEach((stageDoc) => {
+              stages[stageDoc.id] = { ...(stageDoc.data() as Stage), hints: {} };
+
+              const hintsUnsubscribe = onSnapshot(
+                collection(stageDoc.ref, "hints"),
+                (hintsSnapshot) => {
+                  const hints: Record<string, Hint> = {};
+                  hintsSnapshot.forEach((hintDoc) => {
+                    hints[hintDoc.id] = hintDoc.data() as Hint;
+                  });
+                  stages[stageDoc.id].hints = hints;
+
+                  setPuzzles((prevPuzzles) =>
+                    prevPuzzles.map((p) =>
+                      p.id === puzzle.id ? { ...p, stages: { ...stages } } : p
+                    )
+                  );
+                }
+              );
+
+              if (!timerRef.current.some((t) => t === hintsUnsubscribe)) {
+                timerRef.current.push(hintsUnsubscribe);
+              }
+            });
+
+            setPuzzles((prevPuzzles) => {
+              const existingPuzzle = prevPuzzles.find((p) => p.id === puzzle.id);
+              if (!existingPuzzle) {
+                return [...prevPuzzles, { ...puzzle, stages }];
+              }
+              return prevPuzzles.map((p) =>
+                p.id === puzzle.id ? { ...p, stages: { ...stages } } : p
+              );
+            });
+          }
+        );
+
+        if (!timerRef.current.some((t) => t === stagesUnsubscribe)) {
+          timerRef.current.push(stagesUnsubscribe);
+        }
+
+        return puzzle;
+      });
+
+      setPuzzles(puzzlesData);
+    });
+
+    const sensorsUnsubscribe = onSnapshot(collection(db, "sensors"), (snapshot) => {
+      const sensorsData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Sensor, "id">),
+      }));
       setSensors(sensorsData);
-    };
-    loadData();
+    });
 
-    // Cleanup timers on unmount
     return () => {
-      timerRef.current.forEach(clearTimeout);
+      puzzlesUnsubscribe();
+      sensorsUnsubscribe();
+      timerRef.current.forEach((item) => {
+        if (typeof item === "function") {
+          item();
+        } else {
+          clearTimeout(item);
+        }
+      });
+      timerRef.current = [];
     };
   }, []);
 
-  // Function to update puzzle fields in Firebase
   const updatePuzzleInFirebase = async (
     puzzleId: string,
     stageId: string,
-    updates: any,
+    updates: { [key: string]: any },
     hintId?: string,
-    hintUpdates?: any
+    hintUpdates?: { [key: string]: any }
   ) => {
     try {
       const stageRef = doc(db, "puzzles", puzzleId, "stages", stageId);
@@ -55,25 +152,15 @@ const Map: React.FC = () => {
         const hintRef = doc(db, "puzzles", puzzleId, "stages", stageId, "hints", hintId);
         await updateDoc(hintRef, hintUpdates);
       }
-
-      const updatedPuzzles = await fetchPuzzles();
-      setPuzzles(updatedPuzzles || []);
     } catch (error) {
       console.error("Error updating puzzle:", error);
     }
   };
 
-  // Function to update sensor fields in Firebase
-  const updateSensorInFirebase = async (sensorId: string, updates: any) => {
+  const updateSensorInFirebase = async (sensorId: string, updates: Partial<Sensor>) => {
     try {
       const sensorRef = doc(db, "sensors", sensorId);
       await updateDoc(sensorRef, updates);
-
-      // Fetch updated sensors
-      const sensorsCollection = collection(db, "sensors");
-      const sensorsDocs = await getDocs(sensorsCollection);
-      const sensorsData = sensorsDocs.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setSensors(sensorsData);
     } catch (error) {
       console.error("Error updating sensor:", error);
     }
@@ -105,68 +192,46 @@ const Map: React.FC = () => {
     const puzzleId = puzzles[0]?.id || "puzzle_1";
     const stageId = "temple_wall";
 
-    // Activate temple wall action
     updatePuzzleInFirebase(puzzleId, stageId, {
       "actions.isActivated": true,
     });
 
-    // Timer logic
     timerRef.current.push(
       setTimeout(() => {
-        if (!puzzles[0]?.stages?.temple_wall?.piece?.isInteracted) {
+        const templeWallInteracted = puzzlesRef.current[0]?.stages?.temple_wall?.piece?.isInteracted;
+        console.log("Hint 1 - templeWallInteracted:", templeWallInteracted);
+        if (!templeWallInteracted) {
           updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_1", { isShared: true });
           showAlertDialog({ title: "Hint 1", message: "Check the diary" });
-
-          timerRef.current.push(
-            setTimeout(() => {
-              if (!puzzles[0]?.stages?.temple_wall?.piece?.isInteracted) {
-                updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_2", { isShared: true });
-                showAlertDialog({ title: "Hint 2", message: "Check the temple wall stones" });
-
-                timerRef.current.push(
-                  setTimeout(() => {
-                    if (!puzzles[0]?.stages?.temple_wall?.piece?.isInteracted) {
-                      // Activate TW_sign_lights and totem action
-                      updateSensorInFirebase("TW_sign_lights", { isActive: true });
-                      updatePuzzleInFirebase(puzzleId, "totem", {
-                        "actions.isActivated": true,
-                      });
-                      showAlertDialog({
-                        title: "Automation",
-                        message: "TW_sign_lights and Totem action activated due to inactivity.",
-                      });
-                    }
-                  }, 1 * 20 * 1000)
-                );
-              }
-            }, 1 * 40 * 1000)
-          );
         }
-      }, 1 * 60 * 1000)
+      }, 1 * 20 * 1000) // 20 seconds
     );
-  };
 
-  const handleTempleWallInteraction = () => {
-    const puzzleId = puzzles[0]?.id || "puzzle_1";
-    const stageId = "temple_wall";
+    timerRef.current.push(
+      setTimeout(() => {
+        const templeWallInteracted = puzzlesRef.current[0]?.stages?.temple_wall?.piece?.isInteracted;
+        console.log("Hint 2 - templeWallInteracted:", templeWallInteracted);
+        if (!templeWallInteracted) {
+          updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_2", { isShared: true });
+          showAlertDialog({ title: "Hint 2", message: "Check the temple wall stones" });
+        }
+      }, 1 * 60 * 1000) // 1 minute
+    );
 
-    if (!puzzles[0]?.stages?.temple_wall?.piece?.isInteracted) {
-      // Mark temple wall as interacted and activate TW_sign_lights and totem action
-      updatePuzzleInFirebase(puzzleId, stageId, {
-        "piece.isInteracted": true,
-      });
-      updateSensorInFirebase("TW_sign_lights", { isActive: true });
-      updatePuzzleInFirebase(puzzleId, "totem", {
-        "actions.isActivated": true,
-      });
-      showAlertDialog({
-        title: "Temple Wall Interacted",
-        message: "TW_sign_lights and Totem action activated.",
-      });
-
-      // Clear all timers
-      timerRef.current.forEach(clearTimeout);
-    }
+    timerRef.current.push(
+      setTimeout(() => {
+        const templeWallInteracted = puzzlesRef.current[0]?.stages?.temple_wall?.piece?.isInteracted;
+        console.log("Automation - templeWallInteracted:", templeWallInteracted);
+        if (!templeWallInteracted) {
+          updateSensorInFirebase("TW_sign_lights", { isActive: true });
+          updatePuzzleInFirebase(puzzleId, "totem", { "actions.isActivated": true });
+          showAlertDialog({
+            title: "Automation",
+            message: "TW_sign_lights and Totem action activated due to inactivity.",
+          });
+        }
+      }, 2 * 60 * 1000) // 2 minutes
+    );
   };
 
   const panResponder = useRef(
@@ -188,12 +253,10 @@ const Map: React.FC = () => {
 
   return (
     <View style={styles.outerContainer}>
-      {/* Start Button */}
       <View style={styles.startButtonContainer}>
         <Button title="Start" onPress={handleStart} disabled={gameStarted} />
       </View>
 
-      {/* Inventory section */}
       <View style={styles.inventoryContainer}>
         <Text style={styles.inventoryTitle}>Inventory</Text>
         <View style={styles.itemList}>
@@ -219,17 +282,15 @@ const Map: React.FC = () => {
         </View>
       </View>
 
-      {/* Map */}
       <View style={styles.container} {...panResponder.panHandlers}>
         <Animated.View style={{ transform: [{ scale }, { translateX }, { translateY }] }}>
           <Svg width={500} height={500} viewBox="-50 0 600 600">
             <Rect x={0} y={0} width={500} height={500} fill="none" stroke="black" strokeWidth={10} />
             <Line x1={0} y1={400} x2={0} y2={470} stroke="brown" strokeWidth={5} />
+            <Line x1={0} y1={350} x2={500} y2={350} stroke="black" strokeWidth={8} />
 
-            {/* Dynamically render stages */}
             {puzzles.length > 0 && puzzles[0].stages && (
               <>
-                {/* Temple Wall Stage */}
                 {puzzles[0].stages["temple_wall"] && (
                   <>
                     <Rect x={40} y={350} width={150} height={30} fill="grey" stroke="black" strokeWidth={1} />
@@ -240,13 +301,6 @@ const Map: React.FC = () => {
                       fill={puzzles[0].stages["temple_wall"].piece?.isInteracted ? "green" : "black"}
                       stroke="black"
                       strokeWidth={1}
-                      onPressIn={() => {
-                        showAlertDialog({
-                          title: "Temple Wall Stone",
-                          message: puzzles[0].stages["temple_wall"].actions?.description || "No description",
-                        });
-                        handleTempleWallInteraction();
-                      }}
                     />
                     <SvgText x={72} y={370} fontSize={10} fill="white">P.1.1</SvgText>
 
@@ -259,15 +313,11 @@ const Map: React.FC = () => {
                       }
                       stroke="black"
                       strokeWidth={1}
-                      onPressIn={() => handleSensorPress("TW_sign_lights")}
                     />
                     <SvgText x={113} y={370} fontSize={12}>S.1.</SvgText>
                   </>
                 )}
 
-                <Line x1={0} y1={350} x2={500} y2={350} stroke="black" strokeWidth={8} />
-
-                {/* Totem Stage */}
                 {puzzles[0].stages["totem"] && (
                   <>
                     <Circle
@@ -277,12 +327,6 @@ const Map: React.FC = () => {
                       fill={puzzles[0].stages["totem"].piece?.isInteracted ? "green" : "black"}
                       stroke="black"
                       strokeWidth={1}
-                      onPressIn={() =>
-                        showAlertDialog({
-                          title: "Totem Pieces",
-                          message: puzzles[0].stages["totem"].actions?.description || "No description",
-                        })
-                      }
                     />
                     <SvgText x={425} y={448} fontSize={14} fill="white">P.1.2.</SvgText>
 
@@ -295,15 +339,12 @@ const Map: React.FC = () => {
                         sensors.find((s) => s.id === "TW_door")?.isActive ? "green" : "red"
                       }
                       strokeWidth={5}
-                      onPressIn={() => handleSensorPress("TW_door")}
                     />
                     <SvgText x={310} y={365} fontSize={12}>S.2.</SvgText>
                   </>
                 )}
               </>
             )}
-
-            {/* Static elements */}
 
             <Rect x={295} y={415} width={40} height={30} fill="brown" stroke="black" strokeWidth={1} rotation={10} originX={315} originY={425} />
             <SvgText x={300} y={435} fontSize={12}>Diary</SvgText>
@@ -323,7 +364,6 @@ const Map: React.FC = () => {
         </Animated.View>
       </View>
 
-      {/* Sensors section */}
       <View style={styles.sensorsContainer}>
         <Text style={styles.sensorsTitle}>Sensors</Text>
         {sensors.map((sensor) => (
