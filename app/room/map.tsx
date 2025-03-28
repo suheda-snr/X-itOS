@@ -188,14 +188,14 @@ const Map: React.FC = () => {
       title: "Start",
       message: "Game started! Temple wall action activated.",
     });
-
+  
     const puzzleId = puzzles[0]?.id || "puzzle_1";
-    const stageId = "temple_wall";
-
+    let stageId = "temple_wall";
+  
     updatePuzzleInFirebase(puzzleId, stageId, {
       "actions.isActivated": true,
     });
-
+  
     timerRef.current.push(
       setTimeout(() => {
         const templeWallInteracted = puzzlesRef.current[0]?.stages?.temple_wall?.piece?.isInteracted;
@@ -206,7 +206,7 @@ const Map: React.FC = () => {
         }
       }, 1 * 20 * 1000) // 20 seconds
     );
-
+  
     timerRef.current.push(
       setTimeout(() => {
         const templeWallInteracted = puzzlesRef.current[0]?.stages?.temple_wall?.piece?.isInteracted;
@@ -217,7 +217,7 @@ const Map: React.FC = () => {
         }
       }, 1 * 60 * 1000) // 1 minute
     );
-
+  
     timerRef.current.push(
       setTimeout(() => {
         const templeWallInteracted = puzzlesRef.current[0]?.stages?.temple_wall?.piece?.isInteracted;
@@ -230,8 +230,36 @@ const Map: React.FC = () => {
             message: "TW_sign_lights and Totem action activated due to inactivity.",
           });
         }
-      }, 2 * 60 * 1000) // 2 minutes
+      }, 90 * 1000) // 2 minutes
     );
+  
+    timerRef.current.push(
+      setTimeout(() => {
+        const totemInteracted = puzzlesRef.current[0]?.stages?.totem?.piece?.isInteracted;
+        console.log("Automation - totemInteracted:", totemInteracted);
+        if (!totemInteracted) {
+          // Changed from stageId (temple_wall) to "totem"
+          updatePuzzleInFirebase(puzzleId, "totem", {}, "hint_3", { isShared: true });
+          showAlertDialog({ title: "Hint 3", message: "Look for the signs in the room same as light signs" });
+        }
+      }, 2 * 60 * 1000) // 3 minutes
+    );
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const totemInteracted = puzzlesRef.current[0]?.stages?.totem?.piece?.isInteracted;
+        console.log("Automation - totemInteracted:", totemInteracted);
+        if (!totemInteracted) {
+          updateSensorInFirebase("TW_door", { isActive: true });
+          //updatePuzzleInFirebase(puzzleId, "totem", { "actions.isActivated": true });
+          showAlertDialog({
+            title: "Automation",
+            message: "TW_door action activated due to inactivity.",
+          });
+        }
+      }, 150 * 1000) // 2 minutes
+    );
+  
   };
 
   const panResponder = useRef(
@@ -335,9 +363,7 @@ const Map: React.FC = () => {
                       y1={350}
                       x2={340}
                       y2={350}
-                      stroke={
-                        sensors.find((s) => s.id === "TW_door")?.isActive ? "green" : "red"
-                      }
+                      stroke={sensors.find((s) => s.id === "TW_door")?.isActive ? "yellow" : "pink"}
                       strokeWidth={5}
                     />
                     <SvgText x={310} y={365} fontSize={12}>S.2.</SvgText>
