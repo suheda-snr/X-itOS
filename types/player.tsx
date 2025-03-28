@@ -1,3 +1,12 @@
+export interface Player {
+    id?: string | null;
+    userId?: string | null;
+    gameId: string;
+    isGuest: boolean;
+    isAdult: boolean;
+    user?: UserPlayer | null;
+  }
+
 export interface UserPlayer {
     id: string;
     email: string;
@@ -12,15 +21,6 @@ export interface UserPlayer {
     updatedAt: string; 
     companyId: string | null;
     profilePictureId: string | null;
-  }
-  
-  export interface Player {
-    id?: string | null;
-    userId?: string | null;
-    gameId: string;
-    isGuest: boolean;
-    isAdult: boolean;
-    user?: UserPlayer | null;
   }
 
   export interface DisplayPlayers {

@@ -25,20 +25,12 @@ const PlayersInfoAddingScreen: React.FC = () => {
 
   const updatePlayerRole = (id: string, role: "Adult" | "Child" | ""): void => {
     const isAdult = role === "Adult";
-    const updatedUser = displayPlayers?.map((player) =>
+    displayPlayers?.map((player) =>
       player.id === id ? setDisplayPlayers({ ...player, isAdult: isAdult }) : setDisplayPlayers(player)
     )
+
     console.log("updatedUser")
-
     console.log(displayPlayers)
-
-    // if(updatedUser){
-    //   setDisplayPlayers(updatedUser[0]);
-    //   console.log("ISADULT????   " + isAdult)
-    //   console.log(displayPlayers)
-    // }else{
-    //   console.log("updatePlayerRole: No user found")
-    // }
   };
 
   const addGuest = () => {
@@ -110,7 +102,6 @@ const PlayersInfoAddingScreen: React.FC = () => {
             onPress: async () => {
               const playersParam = JSON.stringify(playersData);
               const teamNameParam = JSON.stringify(teamName);
-              //TBA fixing types 
               await addGuestPlayers(displayPlayers)
               router.push(`/teaminfo?players=${encodeURIComponent(playersParam)}&teamName=${encodeURIComponent(teamNameParam)}`);
             },
@@ -160,7 +151,7 @@ const PlayersInfoAddingScreen: React.FC = () => {
             <Picker
               selectedValue={item.isAdult === null ? "" : item.isAdult ? "Adult" : "Child"}
               style={item.isGuest ? styles.picker : styles.pickerNotAvailable}
-              onValueChange={(value) => updatePlayerRole(item.id, value)}
+              onValueChange={(value) => updatePlayerRole(item.id, value as "" | "Adult" | "Child")}
               enabled={item.isGuest}
             >
               <Picker.Item label="Choose..." value="" />
