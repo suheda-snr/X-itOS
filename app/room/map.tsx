@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { View, StyleSheet, Animated, PanResponder, Pressable, Text, Button } from "react-native";
+import { View, StyleSheet, Animated, PanResponder, Pressable, Text, Button, Image } from "react-native";
 import Svg, { Rect, Circle, Text as SvgText, Line } from "react-native-svg";
 import { Alert } from "react-native";
 import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
@@ -23,6 +23,7 @@ interface Stage {
   };
   interacted_sensor?: string;
   hints?: Record<string, Hint>;
+  image_url?: string;
 }
 
 interface Puzzle {
@@ -300,10 +301,16 @@ const Map: React.FC = () => {
                   </Text>
                 </Pressable>
                 {openItem === `p${index + 1}.${stageIndex + 1}` && (
-                  <Text style={styles.itemDetails}>
-                    Details: {puzzle.stages[stageKey].pieces?.piece_1?.type || "No type"} - Interacted:{" "}
-                    {puzzle.stages[stageKey].pieces?.piece_1?.isInteracted ? "Yes" : "No"}
-                  </Text>
+                  <View>
+                    <Text style={styles.itemDetails}>
+                      Details: {puzzle.stages[stageKey].pieces?.piece_1?.type || "No type"} - Interacted:{" "}
+                      {puzzle.stages[stageKey].pieces?.piece_1?.isInteracted ? "Yes" : "No"}
+                    </Text>
+                    <Image
+                      source={{ uri: puzzle.stages[stageKey].image_url }}
+                      style={{ width: 100, height: 100, marginTop: 5 }}
+                    />
+                  </View>
                 )}
               </View>
             ))
