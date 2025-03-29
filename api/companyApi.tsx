@@ -27,18 +27,22 @@ export const getRoomsByCompanyId = async () => {
     const jwtCompany = useAuthStore.getState().jwtCompany;
     try {
         const companyId = useAuthStore.getState().companyUser?.companyId;
-        const response = await fetch(`${BASE_URL}/api/room/`, {
+        const jwtCompany = useAuthStore.getState().jwtCompany;
+        const jwtAdmin = useAuthStore.getState().jwtAdmin;
+        console.log("ADMIN JWT: " + jwtAdmin)
+        console.log("COMPANY JWT: " + jwtCompany)
+
+        const response = await fetch(`${BASE_URL}/api/room/company/${companyId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${jwtCompany}`,
-
             },
         });
 
-        const data = await response.json();
-        const roomsById = data.filter((roomItem: Room) => roomItem.companyId == companyId)
-        useCompanyStore.getState().setRoomsData(roomsById)
+        const data = await response.json(); 
+        useCompanyStore.getState().setRoomsData(data)
+        console.log(data)
     } catch (error) {
         console.error('Error getting rooms data: ', error);
         throw error;
