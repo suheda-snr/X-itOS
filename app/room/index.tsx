@@ -6,7 +6,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconButton } from '@/components/elements/IconButton';
 import { logout } from '../../api/authApi';
 import { Room } from '@/types/room';
-import { testFirestoreConnection } from '../firebase/testFirestore';
 import commonStyles from '@/styles/common';
 import roomStyles from '@/styles/room';
 
@@ -44,8 +43,6 @@ export default function RoomsScreen() {
                 >
                   <Text style={roomStyles.viewDetailsText}>View Details</Text>
                 </TouchableOpacity>
-                <Text>Firebase Connection Test</Text>
-                <Button title="Test Firestore" onPress={testFirestoreConnection} />
               </View>
             ))}
 
