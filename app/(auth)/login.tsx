@@ -13,10 +13,12 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (email && password) {
       try {
+        setLoading(true);
         const token = await login(email, password);
         if (token) {
           await getCompanyName();
@@ -26,6 +28,8 @@ export default function LoginScreen() {
         }
       } catch (error) {
         console.error('Error during login:', error);
+      } finally {
+        setLoading(false);
       }
     } else {
       console.error('Email or password missing');
@@ -66,9 +70,9 @@ export default function LoginScreen() {
             />
 
             <Button
-              title="ENTER"
+              title={loading ? "Loading..." : "LOGIN"}
               onPress={handleLogin}
-              disabled={!(email && password)}
+              disabled={loading || !(email && password)}
             />
 
             <TouchableOpacity

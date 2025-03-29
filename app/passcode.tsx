@@ -38,26 +38,16 @@ const PasscodeScreen: React.FC = () => {
   }, []);
 
   const handleSubmit = async (): Promise<void> => {
-    if (!companyId || !passcode) {
-      console.error("Missing company ID or passcode");
-      return;
-    }
 
     try {
       setLoading(true);
       const token = await loginWithAccessCode(passcode, companyId, 'admin');
 
-      if (!token) {
-        console.error("Login failed due to role mismatch");
-        setLoading(false);
-        return;
-      }
-
       await fetchRooms();
       setLoading(false);
       router.replace('/room');
     } catch (error) {
-      console.error("Login failed:", error);
+      alert(`Login failed: ${(error as Error).message || 'Unknown error'}`);
       setLoading(false);
     }
   };
