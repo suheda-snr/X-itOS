@@ -35,8 +35,9 @@ export default function WelcomeScreen() {
       }
       const token = await loginWithAccessCode(companyPasscode, companyId, 'company');
       router.push('/passcode');
+      setShowModal(false); 
     } catch (error) {
-      alert('Login failed. Please try again.');
+      alert(`Error during passcode login: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setCompanyPasscode('');
     }

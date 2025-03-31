@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { colors } from '@/styles/common';
 
 const roomStyles = StyleSheet.create({
     roomList: {
@@ -13,18 +14,18 @@ const roomStyles = StyleSheet.create({
         paddingVertical: 16,
         paddingHorizontal: 20,
         marginBottom: 20,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: colors.backgroundLight,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: colors.borderLight,
     },
     roomTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#fff',
+        color: colors.textPrimary,
     },
     viewDetailsButton: {
-        backgroundColor: '#ff4b8c',
+        backgroundColor: colors.textSecondary,
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderRadius: 8,
@@ -32,7 +33,7 @@ const roomStyles = StyleSheet.create({
     viewDetailsText: {
         fontSize: 14,
         fontWeight: '500',
-        color: '#fff',
+        color: colors.textPrimary,
     },
     floatingButtonContainer: {
         position: 'absolute',

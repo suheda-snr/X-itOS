@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import commonStyles from '@/styles/common';
 import { PasswordInputField } from '@/components/elements/PasswordInputField';
@@ -7,6 +7,17 @@ import { ModalComponentProps } from '@/types/componentInterfaces';
 import { modalStyles } from '@/styles/modal';
 
 const ModalComponent: React.FC<ModalComponentProps> = ({ visible, onClose, onSubmit, passcode, setPasscode }) => {
+    const [loading, setLoading] = useState<boolean>(false);
+
+    const handleSubmit = async () => {
+        setLoading(true);
+        try {
+            await onSubmit();
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <Modal transparent={true} visible={visible} animationType="fade" onRequestClose={onClose}>
             <View style={[modalStyles.centeredContainer]}>
@@ -26,8 +37,9 @@ const ModalComponent: React.FC<ModalComponentProps> = ({ visible, onClose, onSub
                         />
 
                         <Button
-                            title="Login"
-                            onPress={onSubmit}
+                            title={loading ? "Loading..." : "Login"}
+                            onPress={handleSubmit}
+                            disabled={loading}
                         />
                     </View>
 

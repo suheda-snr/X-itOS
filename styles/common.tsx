@@ -4,6 +4,7 @@ export const colors = {
     white: '#fff',
     primary: '#ff4b8c',
     overlay: 'rgba(0, 0, 0, 0.7)',
+    darkerOverlay: 'rgba(0, 0, 0, 0.9)',    
     backgroundLight: 'rgba(255, 255, 255, 0.1)',
     borderLight: 'rgba(255, 255, 255, 0.2)',
     buttonDefault: 'rgba(255, 75, 140, 0.5)',
