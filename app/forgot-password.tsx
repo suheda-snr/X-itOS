@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground } 
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');

@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconButton } from '@/components/elements/IconButton';
 import { logout } from '../../api/authApi';
 import { Room } from '@/types/room';
-import commonStyles from '@/styles/common';
+import commonStyles, { colors } from '@/styles/common';
 import roomStyles from '@/styles/room';
 
 export default function RoomsScreen() {
@@ -29,7 +29,7 @@ export default function RoomsScreen() {
       }}
       style={commonStyles.container}
     >
-      <LinearGradient colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']} style={commonStyles.overlay}>
+      <LinearGradient colors={[colors.overlay, colors.darkerOverlay]} style={commonStyles.overlay}>
         <ScrollView >
 
           <View style={commonStyles.content}>
