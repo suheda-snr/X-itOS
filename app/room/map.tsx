@@ -198,9 +198,13 @@ const Map: React.FC = () => {
 
     timerRef.current.push(
       setTimeout(() => {
-        const templeWallInteracted = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
-        console.log("Hint 1 - templeWallInteracted:", templeWallInteracted);
-        if (!templeWallInteracted) {
+        const templeWallInteractedPiece1 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
+        const templeWallInteractedPiece2 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_2?.isInteracted;
+
+        console.log("Hint 1 - templeWallInteractedPiece1:", templeWallInteractedPiece1);
+        console.log("Hint 1 - templeWallInteractedPiece2:", templeWallInteractedPiece2);
+
+        if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
           updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_1", { isShared: true });
           showAlertDialog({ title: "Hint 1", message: "Check the diary" });
         }
@@ -209,20 +213,24 @@ const Map: React.FC = () => {
 
     timerRef.current.push(
       setTimeout(() => {
-        const templeWallInteracted = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
-        console.log("Hint 2 - templeWallInteracted:", templeWallInteracted);
-        if (!templeWallInteracted) {
-          updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_2", { isShared: true });
-          showAlertDialog({ title: "Hint 2", message: "Check the temple wall stones" });
-        }
+      const templeWallInteractedPiece1 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
+      const templeWallInteractedPiece2 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_2?.isInteracted;
+      console.log("Hint 2 - templeWallInteractedPiece1:", templeWallInteractedPiece1);
+      console.log("Hint 2 - templeWallInteractedPiece2:", templeWallInteractedPiece2);
+      if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
+        updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_2", { isShared: true });
+        showAlertDialog({ title: "Hint 2", message: "Check the temple wall stones" });
+      }
       }, 60 * 1000) // 1 minute
     );
 
     timerRef.current.push(
       setTimeout(() => {
-        const templeWallInteracted = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
-        console.log("Automation - templeWallInteracted:", templeWallInteracted);
-        if (!templeWallInteracted) {
+        const templeWallInteractedPiece1 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
+        const templeWallInteractedPiece2 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_2?.isInteracted;
+        console.log("Automation - templeWallInteractedPiece1:", templeWallInteractedPiece1);
+        console.log("Automation - templeWallInteractedPiece2:", templeWallInteractedPiece2);
+        if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
           updateSensorInFirebase("TW_sign_lights", { isActive: true });
           updatePuzzleInFirebase(puzzleId, "totem", { "actions.isActivated": true });
           showAlertDialog({
