@@ -21,6 +21,7 @@
 
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth, sendPasswordResetEmail } from "firebase/auth";
 
 // 🔥 Your Firebase config
 const firebaseConfig = {
@@ -36,5 +37,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);  // Initialize Firebase Authentication
 
-export { db };
+export { db, auth };
