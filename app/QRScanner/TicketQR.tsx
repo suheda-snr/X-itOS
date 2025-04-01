@@ -18,7 +18,8 @@ const TicketQR = () => {
 
     const handleTicketScan = async (data: string) => {
         console.log('Ticket QR Scanned:', data);
-
+        // data: {"booking_id":"12345","token":"abcde","user_id":"user123"}
+        const dataAsObject = JSON.parse(data)
         if (!chosenRoom) {
             Alert.alert('Error', 'No room selected for the game');
             return;
@@ -29,17 +30,29 @@ const TicketQR = () => {
         const newGame = {
             teamName,
             roomId: chosenRoom.id,
-            bookingId: data,
+            bookingId: dataAsObject.booking_id,
         };
 
         try {
             console.log('Creating game:', newGame);
             const createdGame = await createGame(newGame);
             //for automated user adding
-            //await getBookingDetails(createdGame.bookingId)
-            //TBA getting userid
-            //await addPlayerWithAccount(useGameStore.getState().bookingDetails?.user)
-            router.push(`/playersinfoadding?teamName=${encodeURIComponent(teamName)}`);
+            if (createdGame) {
+                const bookingData = await getBookingDetails(createdGame.bookingId);
+                console.log("booking from db: " + bookingData?.id)
+                console.log("user from db: " + bookingData?.user.id)
+                console.log("booking from qr: " + dataAsObject.booking_id)
+                console.log("user from qr: " + dataAsObject.user_id)
+                if(bookingData?.id.trim() == dataAsObject.booking_id.trim() && bookingData?.user.id.trim() == dataAsObject.user_id.trim()){
+                    console.log("Adding player...")
+                    await addPlayerWithAccount(bookingData?.user.id)
+                    router.push(`/playersinfoadding?teamName=${encodeURIComponent(teamName)}`);
+                }else {
+                    throw new Error('Failed to add player');
+                }  
+            } else {
+                throw new Error('Failed to create game. Created game is undefined.');
+            }            
         } catch (error: any) {
             console.log('Error creating game:', error);
             const errorMessage = error.message.includes('Game can only be created for scheduled bookings')

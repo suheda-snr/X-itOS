@@ -154,6 +154,9 @@ export const addPlayerWithAccount = async(userId: string) => {
             isAdult: true //TBA function to get age
         }
 
+        console.log("Attemting to add player with account")
+        console.log(newPlayer)
+
         const response = await fetch(`${BASE_URL}/api/player`, {
             method: 'POST',
             headers: {
@@ -205,6 +208,7 @@ export const getBookingDetails = async(bookingId: string) => {
         console.log("BOOKING DATA: ")
         console.log(bookingData)
         useGameStore.getState().setBookingDetails(bookingData)
+        return bookingData
     } catch (error) {
         console.error('Failed to fetch booking:', error);
         throw error;

@@ -13,7 +13,6 @@ import { updateGameData } from "@/api/gameApi";
 
 
 const PlayersInfoAddingScreen: React.FC = () => {
-  var crypto: Crypto
   const { gameData, updateGameData: updateStoreGameData } = useGameStore();
   const teamName = gameData?.teamName || "Team Name";
   const [newTeamName, setNewTeamName] = useState(teamName);
