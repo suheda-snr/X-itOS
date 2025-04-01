@@ -174,12 +174,31 @@ const Map: React.FC = () => {
     setOpenItem(openItem === item ? null : item);
   };
 
-  const handleSensorPress = (sensorId: string) => {
-    // connect with firebase sensor activation logic later
-    // showAlertDialog({
-    //   title: "Sensor Activated",
-    //   message: `You have activated the ${sensorId} sensor.`,
-    // });
+  const handleSensorPress = async (sensorId: string) => {
+    try {
+      const sensor = sensors.find((s) => s.id === sensorId);
+      if (!sensor) {
+        showAlertDialog({
+          title: "Error",
+          message: `Sensor with ID ${sensorId} not found.`,
+        });
+        return;
+      }
+
+      const updatedStatus = !sensor.isActive;
+      await updateSensorInFirebase(sensorId, { isActive: updatedStatus });
+
+      showAlertDialog({
+        title: "Sensor Updated",
+        message: `The ${sensorId} sensor is now ${updatedStatus ? "Active" : "Inactive"}.`,
+      });
+    } catch (error) {
+      console.error("Error updating sensor:", error);
+      showAlertDialog({
+        title: "Error",
+        message: "Failed to update the sensor. Please try again.",
+      });
+    }
   };
 
   const handleStart = () => {
@@ -416,6 +435,7 @@ const Map: React.FC = () => {
             <Rect x={0} y={0} width={500} height={500} fill="none" stroke="black" strokeWidth={10} />
             <Line x1={0} y1={400} x2={0} y2={470} stroke="brown" strokeWidth={5} />
             <Line x1={0} y1={350} x2={500} y2={350} stroke="black" strokeWidth={8} />
+            <Rect x={500} y={100} width={-30} height={200} fill="grey" stroke="black" strokeWidth={1} />
 
             {puzzles.length > 0 && puzzles[0].stages && (
               <>
@@ -493,6 +513,17 @@ const Map: React.FC = () => {
                   </>
                 )}
 
+                {puzzles[1].stages["piece_1"] && (
+                  <>
+                    <Rect x={70} y={465} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "black"} stroke="black" strokeWidth={1} />
+                    <SvgText x={75} y={479} fontSize={10} fill="white">P.2.1</SvgText>
+                    <Rect x={470} y={270} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "black"} stroke="black" strokeWidth={1} />
+                    <SvgText x={475} y={284} fontSize={10} fill="white">P.2.2</SvgText>
+                    <Rect x={280} y={95} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "black"} stroke="black" strokeWidth={1} />
+                    <SvgText x={285} y={109} fontSize={10} fill="white">P.2.3</SvgText>
+                  </>
+                )}
+
                 {puzzles[2].stages["wall_buttons"] && (
                   <>
                     <Rect x={5} y={160} width={25} height={140} fill="grey" stroke="black" strokeWidth={1} />
@@ -529,7 +560,7 @@ const Map: React.FC = () => {
             <SvgText x={300} y={205} fontSize={12}>Table</SvgText>
             <Rect x={233} y={160} width={40} height={20} fill="black" stroke="black" strokeWidth={1} />
             <SvgText x={245} y={175} fontSize={10} fill="white">R.P</SvgText>
-            <Rect x={500} y={100} width={-30} height={200} fill="grey" stroke="black" strokeWidth={1} />
+
             <Circle cx={485} cy={150} r={14} fill="black" stroke="black" strokeWidth={1} />
             <SvgText x={482} y={155} fontSize={10} fill="white">S</SvgText>
             <Circle cx={485} cy={190} r={14} fill="black" stroke="black" strokeWidth={1} />
