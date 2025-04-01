@@ -270,24 +270,121 @@ const Map: React.FC = () => {
         }
       }, 150 * 1000) // 2.5 minutes
     );
+
+    // After puzzle-1 is completed, trigger puzzle-2
+    timerRef.current.push(
+      setTimeout(() => {
+        // Transition to puzzle-2
+        const puzzle2Id = "puzzle_2";
+        const stageId2 = "piece_1";  // Assuming "table_puzzle" is the stage for puzzle-2
+
+        updatePuzzleInFirebase(puzzle2Id, stageId2, { "actions.isActivated": true })
+           .then(() => console.log("Puzzle 2 activated successfully in Firebase"))
+           .catch((error) => console.error(" Error activating Puzzle 2:", error));
+
+           console.log("Puzzle 2 state after activation:", puzzlesRef.current[1]);
+
+
+        // Show alert when puzzle-2 begins
+        showAlertDialog({
+          title: "Puzzle 2 Started",
+          message: "You have now unlocked puzzle 2! Complete the puzzle on the table.",
+        });
+
+        // Handle interactions with puzzle pieces in puzzle-2
+        timerRef.current.push(
+          setTimeout(() => {
+            // Check if all pieces are interacted with
+            const piece1 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_1?.isInteracted;
+            const piece2 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_2?.isInteracted;
+            const piece3 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_3?.isInteracted;
+            const piece4 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_4?.isInteracted;
+            const piece5 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_5?.isInteracted;
+            const piece6 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_6?.isInteracted;
+
+            const puzzleCompleted = piece1 && piece2 && piece3 && piece4 && piece5 && piece6;
+
+            if (!puzzleCompleted) {
+              updatePuzzleInFirebase(puzzle2Id, stageId2, {}, "hint_1", { isShared: true });
+              showAlertDialog({
+                title: "Hint 2",
+                message: "Check if all pieces on the table are in the correct place.",
+              });
+
+              // Give another 30 seconds for the player to complete the puzzle
+              timerRef.current.push(
+                setTimeout(() => {
+                  // Check if all pieces are interacted with
+                  const piece1 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_1?.isInteracted;
+                  const piece2 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_2?.isInteracted;
+                  const piece3 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_3?.isInteracted;
+                  const piece4 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_4?.isInteracted;
+                  const piece5 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_5?.isInteracted;
+                  const piece6 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_6?.isInteracted;
+                  
+                  const puzzleCompleted = piece1 && piece2 && piece3 && piece4 && piece5 && piece6;
+                  
+
+                  // If still not completed, complete the puzzle automatically
+                  if (!puzzleCompleted) {
+                    
+                    // Turn off the main light
+                    updateSensorInFirebase("main_light", { isActive: false });
+
+                    // Turn on the red top light
+                    updateSensorInFirebase("red_toplight", { isActive: true });
+
+                    // Update the puzzle state in Firebase
+                    updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "actions.isActivated": true });
+
+                    showAlertDialog({
+                      title: "Puzzle 2 Complete",
+                      message: "The puzzle on the table is now complete, and the main light is turned off and red_toplight is turned on. Puzzle 3 is now unlocked!",
+                    });
+                  }
+                }, 160 * 1000) // 2 minutes 40 seconds
+              );
+            }
+          }, 165 * 1000) // 2 minutes 45 seconds
+        );
+      }, 167* 1000) // 2 minutes 50 seconds
+    );
   };
+
+  // const panResponder = useRef(
+  //   PanResponder.create({
+  //     onStartShouldSetPanResponder: () => true,
+  //     onMoveShouldSetPanResponder: () => true,
+  //     onPanResponderMove: (event, gesture) => {
+  //       if (gesture.numberActiveTouches === 2) {
+  //         const newScale = Math.max(0.5, Math.min(3, scale._value + gesture.dx * 0.001));
+  //         scale.setValue(newScale);
+  //       } else {
+  //         translateX.setValue(gesture.dx);
+  //         translateY.setValue(gesture.dy);
+  //       }
+  //     },
+  //     onPanResponderRelease: () => {},
+  //   })
+  // ).current;
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: (event, gesture) => {
-        if (gesture.numberActiveTouches === 2) {
-          const newScale = Math.max(0.5, Math.min(3, scale._value + gesture.dx * 0.001));
-          scale.setValue(newScale);
-        } else {
-          translateX.setValue(gesture.dx);
-          translateY.setValue(gesture.dy);
-        }
-      },
-      onPanResponderRelease: () => {},
+      onPanResponderMove: Animated.event(
+        [
+          null,
+          {
+            dx: translateX,
+            dy: translateY,
+          },
+        ],
+        { useNativeDriver: false }
+      ),
     })
   ).current;
+  
 
   return (
     <View style={styles.outerContainer}>
