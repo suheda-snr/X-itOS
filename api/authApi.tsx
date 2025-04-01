@@ -22,7 +22,8 @@ export const login = async (email: string, password: string) => {
             const decoded = decodeJWT(token);
 
             if (!decoded || decoded.role !== 'COMPANY') {
-                console.warn('Unauthorized role. Logging out.');
+                console.log('Unauthorized role. Logging out.');
+                alert('Unauthorized account. Please use a company account.');
                 await useAuthStore.getState().logout(decoded.role);
                 return;
             }
@@ -44,7 +45,8 @@ export const login = async (email: string, password: string) => {
             await useAuthStore.getState().setJwt(token, userData, 'company');
             return token;
         } else {
-            console.error('Login failed:', data.message);
+            console.log('Login failed:', data.message);
+            alert(data.message || 'Login failed');
         }
     } catch (error) {
         console.error('Error during login:', error);
@@ -84,7 +86,7 @@ export const loginWithAccessCode = async (accessCode: string, companyId: string,
             console.log('Decoded role:', decoded.role);
 
             if (decoded.role.toUpperCase() !== role.toUpperCase()) {
-                console.error(`Unauthorized role: ${decoded.role}`);
+                console.log(`Unauthorized role: ${decoded.role}`);
                 throw new Error('Unauthorized role');
             }
 
@@ -105,11 +107,10 @@ export const loginWithAccessCode = async (accessCode: string, companyId: string,
             await useAuthStore.getState().setJwt(token, userData, role);
             return token;
         } else {
-            console.error('Access code login failed:', data.message);
+            console.log('Access code login failed:', data.message);
             throw new Error(data.message || 'Access code login failed');
         }
     } catch (error) {
-        console.error('Error during access code login:', error);
         throw error;
     }
 };
