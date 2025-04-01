@@ -1,7 +1,7 @@
 import React from 'react';
 import { useCompanyStore } from '@/stateStore/companyStore';
 import { router } from 'expo-router';
-import { ImageBackground, ScrollView, Text, View, TouchableOpacity } from 'react-native';
+import { ImageBackground, ScrollView, Text, View, TouchableOpacity, Button } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconButton } from '@/components/elements/IconButton';
 import { logout } from '../../api/authApi';

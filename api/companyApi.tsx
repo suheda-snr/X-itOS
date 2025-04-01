@@ -24,6 +24,7 @@ export const getCompanyName = async () => {
 }
 
 export const getRoomsByCompanyId = async () => {
+    const jwtCompany = useAuthStore.getState().jwtCompany;
     try {
         const companyId = useAuthStore.getState().companyUser?.companyId;
         const jwtCompany = useAuthStore.getState().jwtCompany;
