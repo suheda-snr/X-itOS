@@ -175,10 +175,11 @@ const Map: React.FC = () => {
   };
 
   const handleSensorPress = (sensorId: string) => {
-    showAlertDialog({
-      title: "Sensor Activated",
-      message: `You have activated the ${sensorId} sensor.`,
-    });
+    // connect with firebase sensor activation logic later
+    // showAlertDialog({
+    //   title: "Sensor Activated",
+    //   message: `You have activated the ${sensorId} sensor.`,
+    // });
   };
 
   const handleStart = () => {
@@ -213,14 +214,14 @@ const Map: React.FC = () => {
 
     timerRef.current.push(
       setTimeout(() => {
-      const templeWallInteractedPiece1 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
-      const templeWallInteractedPiece2 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_2?.isInteracted;
-      console.log("Hint 2 - templeWallInteractedPiece1:", templeWallInteractedPiece1);
-      console.log("Hint 2 - templeWallInteractedPiece2:", templeWallInteractedPiece2);
-      if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
-        updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_2", { isShared: true });
-        showAlertDialog({ title: "Hint 2", message: "Check the temple wall stones" });
-      }
+        const templeWallInteractedPiece1 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
+        const templeWallInteractedPiece2 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_2?.isInteracted;
+        console.log("Hint 2 - templeWallInteractedPiece1:", templeWallInteractedPiece1);
+        console.log("Hint 2 - templeWallInteractedPiece2:", templeWallInteractedPiece2);
+        if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
+          updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_2", { isShared: true });
+          showAlertDialog({ title: "Hint 2", message: "Check the temple wall stones" });
+        }
       }, 60 * 1000) // 1 minute
     );
 
@@ -265,108 +266,95 @@ const Map: React.FC = () => {
           updatePuzzleInFirebase("puzzle_2", "piece_1", { "actions.isActivated": true });
           showAlertDialog({
             title: "Automation",
-            message: "TW_door and main light activated due to inactivity.",
+            message: "TW_door and main light activated due to inactivity. Puzzle 2 unlocked.",
           });
         }
-      }, 150 * 1000) // 2.5 minutes
+      }, 150 * 1000)
     );
 
-    // After puzzle-1 is completed, trigger puzzle-2
     timerRef.current.push(
       setTimeout(() => {
-        // Transition to puzzle-2
-        const puzzle2Id = "puzzle_2";
-        const stageId2 = "piece_1";  // Assuming "table_puzzle" is the stage for puzzle-2
+        // Check if all pieces are interacted with
+        const piece1 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_1?.isInteracted;
+        const piece2 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_2?.isInteracted;
+        const piece3 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_3?.isInteracted;
+        const piece4 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_4?.isInteracted;
+        const piece5 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_5?.isInteracted;
+        const piece6 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_6?.isInteracted;
 
-        updatePuzzleInFirebase(puzzle2Id, stageId2, { "actions.isActivated": true })
-           .then(() => console.log("Puzzle 2 activated successfully in Firebase"))
-           .catch((error) => console.error(" Error activating Puzzle 2:", error));
+        const puzzleCompleted = piece1 && piece2 && piece3 && piece4 && piece5 && piece6;
 
-           console.log("Puzzle 2 state after activation:", puzzlesRef.current[1]);
-
-
-        // Show alert when puzzle-2 begins
-        showAlertDialog({
-          title: "Puzzle 2 Started",
-          message: "You have now unlocked puzzle 2! Complete the puzzle on the table.",
-        });
-
-        // Handle interactions with puzzle pieces in puzzle-2
-        timerRef.current.push(
-          setTimeout(() => {
-            // Check if all pieces are interacted with
-            const piece1 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_1?.isInteracted;
-            const piece2 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_2?.isInteracted;
-            const piece3 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_3?.isInteracted;
-            const piece4 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_4?.isInteracted;
-            const piece5 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_5?.isInteracted;
-            const piece6 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_6?.isInteracted;
-
-            const puzzleCompleted = piece1 && piece2 && piece3 && piece4 && piece5 && piece6;
-
-            if (!puzzleCompleted) {
-              updatePuzzleInFirebase(puzzle2Id, stageId2, {}, "hint_1", { isShared: true });
-              showAlertDialog({
-                title: "Hint 2",
-                message: "Check if all pieces on the table are in the correct place.",
-              });
-
-              // Give another 30 seconds for the player to complete the puzzle
-              timerRef.current.push(
-                setTimeout(() => {
-                  // Check if all pieces are interacted with
-                  const piece1 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_1?.isInteracted;
-                  const piece2 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_2?.isInteracted;
-                  const piece3 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_3?.isInteracted;
-                  const piece4 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_4?.isInteracted;
-                  const piece5 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_5?.isInteracted;
-                  const piece6 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_6?.isInteracted;
-                  
-                  const puzzleCompleted = piece1 && piece2 && piece3 && piece4 && piece5 && piece6;
-                  
-
-                  // If still not completed, complete the puzzle automatically
-                  if (!puzzleCompleted) {
-                    
-                    // Turn off the main light
-                    updateSensorInFirebase("main_light", { isActive: false });
-
-                    // Turn on the red top light
-                    updateSensorInFirebase("red_toplight", { isActive: true });
-
-                    // Update the puzzle state in Firebase
-                    updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "actions.isActivated": true });
-
-                    showAlertDialog({
-                      title: "Puzzle 2 Complete",
-                      message: "The puzzle on the table is now complete, and the main light is turned off and red_toplight is turned on. Puzzle 3 is now unlocked!",
-                    });
-                  }
-                }, 160 * 1000) // 2 minutes 40 seconds
-              );
-            }
-          }, 165 * 1000) // 2 minutes 45 seconds
-        );
-      }, 167* 1000) // 2 minutes 50 seconds
+        if (!puzzleCompleted) {
+          updatePuzzleInFirebase("puzzle_2", "piece_1", {}, "hint_1", { isShared: true });
+          showAlertDialog({
+            title: "Hint 1",
+            message: "Check if all pieces on the table are in the correct place.",
+          });
+        }
+      }, 180 * 1000)
     );
-  };
 
-  // const panResponder = useRef(
-  //   PanResponder.create({
-  //     onStartShouldSetPanResponder: () => true,
-  //     onMoveShouldSetPanResponder: () => true,
-  //     onPanResponderMove: (event, gesture) => {
-  //       if (gesture.numberActiveTouches === 2) {
-  //         const newScale = Math.max(0.5, Math.min(3, scale._value + gesture.dx * 0.001));
-  //         scale.setValue(newScale);
-  //       } else {
-  //         translateX.setValue(gesture.dx);
-  //         translateY.setValue(gesture.dy);
-  //       }
-  //     },
-  //     onPanResponderRelease: () => {},
-  //   })
-  // ).current;
+    timerRef.current.push(
+      setTimeout(() => {
+        // Check if all pieces are interacted with
+        const piece1 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_1?.isInteracted;
+        const piece2 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_2?.isInteracted;
+        const piece3 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_3?.isInteracted;
+        const piece4 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_4?.isInteracted;
+        const piece5 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_5?.isInteracted;
+        const piece6 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_6?.isInteracted;
+
+        const puzzleCompleted = piece1 && piece2 && piece3 && piece4 && piece5 && piece6;
+
+        if (!puzzleCompleted) {
+          updateSensorInFirebase("main_light", { isActive: false });
+          updateSensorInFirebase("red_toplight", { isActive: true });
+          updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "actions.isActivated": true });
+
+          showAlertDialog({
+            title: "Puzzle 2 Complete",
+            message: "Main light deactivated, red top light activated, and Puzzle 3 unlocked due to inactivity.",
+          });
+        }
+      }, 200 * 1000) // 2 minutes 40 seconds
+    );
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const wallButtons1 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_1?.isInteracted;
+        const wallButtons2 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_2?.isInteracted;
+        const wallButtons3 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_3?.isInteracted;
+        const wallButtons4 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_4?.isInteracted;
+        const wallButtons5 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_5?.isInteracted;
+        const wallButtons6 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_6?.isInteracted;
+
+        if (!wallButtons1 && !wallButtons2 && !wallButtons4 && !wallButtons6) {
+          updatePuzzleInFirebase("puzzle_3", "wall_buttons", {}, "hint_1", { isShared: true });
+          showAlertDialog({ title: "Hint 1", message: "" });
+        }
+      }, 220 * 1000)
+    );
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const wallButtons1 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_1?.isInteracted;
+        const wallButtons2 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_2?.isInteracted;
+        const wallButtons3 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_3?.isInteracted;
+        const wallButtons4 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_4?.isInteracted;
+        const wallButtons5 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_5?.isInteracted;
+        const wallButtons6 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_6?.isInteracted;
+
+        if (!wallButtons1 && !wallButtons2 && !wallButtons3 && !wallButtons4 && !wallButtons5 && !wallButtons6) {
+          updateSensorInFirebase("locker_under_weights", { isActive: true });
+          updatePuzzleInFirebase("puzzle_4", "gears", { "actions.isActivated": true });
+          showAlertDialog({
+            title: "Automation",
+            message: "Locker under weights sensor activated and puzzle_4 stage activated due to inactivity.",
+          });
+        }
+      }, 250 * 1000)
+    );
+  }
 
   const panResponder = useRef(
     PanResponder.create({
@@ -384,7 +372,6 @@ const Map: React.FC = () => {
       ),
     })
   ).current;
-  
 
   return (
     <View style={styles.outerContainer}>
@@ -456,6 +443,29 @@ const Map: React.FC = () => {
                       strokeWidth={1}
                     />
                     <SvgText x={113} y={369} fontSize={12}>S.1.</SvgText>
+
+                    <Rect x={380} y={350} width={100} height={30} fill="grey" stroke="black" strokeWidth={1} />
+                    <Circle
+                      cx={410}
+                      cy={365}
+                      r={12}
+                      fill={puzzles[0].stages["temple_wall"].pieces?.piece_2?.isInteracted ? "green" : "black"}
+                      stroke="black"
+                      strokeWidth={1}
+                    />
+                    <SvgText x={400} y={369} fontSize={10} fill="white">P.1.1</SvgText>
+
+                    <Circle
+                      cx={450}
+                      cy={365}
+                      r={12}
+                      fill={
+                        sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "green" : "red"
+                      }
+                      stroke="black"
+                      strokeWidth={1}
+                    />
+                    <SvgText x={441} y={369} fontSize={12}>S.1.</SvgText>
                   </>
                 )}
 
@@ -480,6 +490,34 @@ const Map: React.FC = () => {
                       strokeWidth={5}
                     />
                     <SvgText x={310} y={365} fontSize={12}>S.2.</SvgText>
+                  </>
+                )}
+
+                {puzzles[2].stages["wall_buttons"] && (
+                  <>
+                    <Rect x={5} y={160} width={25} height={140} fill="grey" stroke="black" strokeWidth={1} />
+                    {["button_6", "button_5", "button_4", "button_3", "button_2", "button_1"].map((button, index) => {
+                      const cx = 17;
+                      const cy = 180 + index * 20;
+                      return (
+                        <React.Fragment key={button}>
+                          <Circle
+                            cx={cx}
+                            cy={cy}
+                            r={8}
+                            fill={puzzles[2].stages["wall_buttons"].pieces?.[button]?.isInteracted ? "green" : "black"}
+                            stroke="black"
+                            strokeWidth={1}
+                          />
+                          <SvgText x={cx - 2} y={cy + 4} fontSize={8} fill="white">
+                            {6 - index}
+                          </SvgText>
+                        </React.Fragment>
+                      );
+                    })}
+                    <Rect x={380} y={316} width={100} height={30} fill="grey" stroke="black" strokeWidth={1} />
+                    <Rect x={380} y={315} width={100} height={8} fill={sensors.find((s) => s.id === "7" && s.isActive) ? "yellow" : "pink"} stroke="black" strokeWidth={1} />
+                    <SvgText x={420} y={324} fontSize={12}>S.7.</SvgText>
                   </>
                 )}
               </>
