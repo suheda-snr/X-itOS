@@ -174,23 +174,26 @@ const Map: React.FC = () => {
     setOpenItem(openItem === item ? null : item);
   };
 
-  const handleSensorPress = async (sensorId: string) => {
+  const handleSensorPress = async (sensorName: string) => {
     try {
-      const sensor = sensors.find((s) => s.id === sensorId);
+      // Find the sensor by its name
+      const sensor = sensors.find((s) => s.id === sensorName);
       if (!sensor) {
         showAlertDialog({
           title: "Error",
-          message: `Sensor with ID ${sensorId} not found.`,
+          message: `Sensor with name ${sensorName} not found.`,
         });
         return;
       }
 
       const updatedStatus = !sensor.isActive;
-      await updateSensorInFirebase(sensorId, { isActive: updatedStatus });
+
+      // Update the sensor in Firebase using its name
+      await updateSensorInFirebase(sensorName, { isActive: updatedStatus });
 
       showAlertDialog({
         title: "Sensor Updated",
-        message: `The ${sensorId} sensor is now ${updatedStatus ? "Active" : "Inactive"}.`,
+        message: `The ${sensorName} sensor is now ${updatedStatus ? "Active" : "Inactive"}.`,
       });
     } catch (error) {
       console.error("Error updating sensor:", error);
@@ -200,6 +203,7 @@ const Map: React.FC = () => {
       });
     }
   };
+
 
   const handleStart = () => {
     if (gameStarted) return;
@@ -226,7 +230,7 @@ const Map: React.FC = () => {
 
         if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
           updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_1", { isShared: true });
-          showAlertDialog({ title: "Hint 1", message: "Check the diary" });
+          showAlertDialog({ title: "Hint", message: "Hint 1 is shared for puzzle_1" });
         }
       }, 20 * 1000) // 20 seconds
     );
@@ -239,7 +243,7 @@ const Map: React.FC = () => {
         console.log("Hint 2 - templeWallInteractedPiece2:", templeWallInteractedPiece2);
         if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
           updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_2", { isShared: true });
-          showAlertDialog({ title: "Hint 2", message: "Check the temple wall stones" });
+          showAlertDialog({ title: "Hint", message: "Hint 2 is shared for puzzle_1" });
         }
       }, 60 * 1000) // 1 minute
     );
@@ -268,8 +272,8 @@ const Map: React.FC = () => {
         if (!totemInteracted) {
           updatePuzzleInFirebase(puzzleId, "totem", {}, "hint_3", { isShared: true });
           showAlertDialog({
-            title: "Hint 3",
-            message: "Look for the signs in the room same as light signs",
+            title: "Hint",
+            message: "Hint 3 is shared for puzzle_1",
           });
         }
       }, 120 * 1000) // 2 minutes
@@ -306,8 +310,8 @@ const Map: React.FC = () => {
         if (!puzzleCompleted) {
           updatePuzzleInFirebase("puzzle_2", "piece_1", {}, "hint_1", { isShared: true });
           showAlertDialog({
-            title: "Hint 1",
-            message: "Check if all pieces on the table are in the correct place.",
+            title: "Hint",
+            message: "Hint is shared for puzzle_2",
           });
         }
       }, 180 * 1000)
@@ -349,7 +353,7 @@ const Map: React.FC = () => {
 
         if (!wallButtons1 && !wallButtons2 && !wallButtons4 && !wallButtons6) {
           updatePuzzleInFirebase("puzzle_3", "wall_buttons", {}, "hint_1", { isShared: true });
-          showAlertDialog({ title: "Hint 1", message: "" });
+          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_3" });
         }
       }, 220 * 1000)
     );
@@ -363,7 +367,7 @@ const Map: React.FC = () => {
         const wallButtons5 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_5?.isInteracted;
         const wallButtons6 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_6?.isInteracted;
 
-        if (!wallButtons1 && !wallButtons2 && !wallButtons3 && !wallButtons4 && !wallButtons5 && !wallButtons6) {
+        if (!wallButtons1 && !wallButtons2 && wallButtons3 && !wallButtons4 && wallButtons5 && !wallButtons6) {
           updateSensorInFirebase("locker_under_weights", { isActive: true });
           updatePuzzleInFirebase("puzzle_4", "gears", { "actions.isActivated": true });
           showAlertDialog({
@@ -373,7 +377,174 @@ const Map: React.FC = () => {
         }
       }, 250 * 1000)
     );
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const gearsPieces = puzzlesRef.current[3]?.stages?.gears?.pieces?.gears?.isInteracted;
+
+        console.log("Hint 1 - gearsPieces:", gearsPieces);
+        if (!gearsPieces) {
+          updatePuzzleInFirebase("puzzle_4", "gears", {}, "hint_1", { isShared: true });
+          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_4" });
+        }
+      }, 270 * 1000)
+    );
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const gearsPieces = puzzlesRef.current[3]?.stages?.gears?.pieces?.gears?.isInteracted;
+
+        if (!gearsPieces) {
+          updatePuzzleInFirebase("puzzle_4", "crank_rotation", { "actions.isActivated": true });
+          updateSensorInFirebase("sliding_door", { isActive: false });
+          showAlertDialog({
+            title: "Automation",
+            message: "Sliding door closed and crank rotation activated due to inactivity.",
+          });
+        }
+      }, 280 * 1000)
+    );
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const cranckRotation = puzzlesRef.current[3]?.stages?.crank_rotation?.pieces?.crank?.isInteracted;
+
+        if (!cranckRotation) {
+          updatePuzzleInFirebase("puzzle_5", "insert_ball", { "actions.isActivated": true });
+          updateSensorInFirebase("ball_locker", { isActive: true });
+          showAlertDialog({
+            title: "Automation",
+            message: "Ball locker sensor activated and insert ball stage activated due to inactivity.",
+          });
+        }
+      }, 290 * 1000)
+    );
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const ballInsert = puzzlesRef.current[4]?.stages?.insert_ball?.pieces?.ball?.isInteracted;
+
+        if (!ballInsert) {
+          updatePuzzleInFirebase("puzzle_5", "crank_rotation_to_get_balls", { "actions.isActivated": true });
+          updateSensorInFirebase("crank_hole", { isActive: true });
+          showAlertDialog({
+            title: "Automation",
+            message: "Crank hole sensor activated and crank rotation to get balls stage activated due to inactivity.",
+          });
+        }
+      }, 310 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const gettingBalls = puzzlesRef.current[4]?.stages?.crank_rotation_to_get_balls?.pieces?.ball?.isInteracted;
+
+        if (!gettingBalls) {
+          updatePuzzleInFirebase("puzzle_6", "weight", { "actions.isActivated": true });
+          updateSensorInFirebase("balls_releasing_mechanism", { isActive: true });
+          showAlertDialog({
+            title: "Automation",
+            message: "Balls are released and next step is activated"
+          });
+        }
+      }, 320 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const ball1 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_1?.isInteracted;
+        const ball2 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_2?.isInteracted;
+        const ball3 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_3?.isInteracted;
+
+        if (!ball1 && !ball2 && !ball3) {
+          updatePuzzleInFirebase("puzzle_6", "weight", {}, "hint_1", { isShared: true });
+          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_6" });
+        }
+      }
+        , 340 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const ball1 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_1?.isInteracted;
+        const ball2 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_2?.isInteracted;
+        const ball3 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_3?.isInteracted;
+
+        if (!ball1 && !ball2 && !ball3) {
+          updatePuzzleInFirebase("puzzle_7", "wheels", { "actions.isActivated": true });
+          showAlertDialog({
+            title: "Automation",
+            message: "Wheels stage activated due to inactivity.",
+          });
+        }
+      }, 360 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const wheel1 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
+        const wheel2 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
+        const wheel3 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_3?.isInteracted;
+
+        if (!wheel1 && !wheel2 && !wheel3) {
+          updatePuzzleInFirebase("puzzle_7", "wheels", {}, "hint_1", { isShared: true });
+          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_7" });
+        }
+      }
+        , 380 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const wheel1 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
+        const wheel2 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
+        const wheel3 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_3?.isInteracted;
+
+        if (!wheel1 && !wheel2 && !wheel3) {
+          updateSensorInFirebase("dog_locker", { isActive: true });
+          updatePuzzleInFirebase("puzzle_8", "altar", { "actions.isActivated": true });
+          showAlertDialog({
+            title: "Automation",
+            message: "Altar stage is activated and dog locker is opened.",
+          });
+        }
+      }
+        , 400 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const object1 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
+        const object2 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
+        const object3 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_3?.isInteracted;
+
+        if (!object1 && !object2 && !object3) {
+          updatePuzzleInFirebase("puzzle_8", "altar", {}, "hint_1", { isShared: true });
+          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_8" });
+        }
+      }
+        , 410 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const object1 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
+        const object2 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
+        const object3 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_3?.isInteracted;
+
+        if (!object1 && !object2 && !object3) {
+          updateSensorInFirebase("table_lock", { isActive: true });
+          updatePuzzleInFirebase("puzzle_9", "pegs", { "actions.isActivated": true });
+          showAlertDialog({
+            title: "Automation",
+            message: " Pegs stage is activated and table lock is opened",
+          });
+        }
+      }
+        , 420 * 1000)
+    )
   }
+
 
   const panResponder = useRef(
     PanResponder.create({
