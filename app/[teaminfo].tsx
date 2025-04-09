@@ -24,6 +24,10 @@ function TeamInfoScreen() {
     router.push('/GameStatistics/[TeamStats]');
   };
 
+  const navigateToPlayerActions = () => {
+    router.push('/PlayerActions')
+  }
+
   return (
     <LinearGradient colors={["#1a1a1a", "#2a2a2a"]} style={styles.container}>
       <Text style={styles.teamName}>{parsedTeamName}</Text>
@@ -44,6 +48,9 @@ function TeamInfoScreen() {
       {/* Button to redirect to the statistics, this route will be redirected when the game ends in actual project*/}
       <Text style={styles.redirectText} onPress={handleNavigateToStats}>
         Go to Team Statistics
+      </Text>
+      <Text style={styles.redirectText} onPress={navigateToPlayerActions}>
+        Go to Player Actions
       </Text>
     </LinearGradient>
   );

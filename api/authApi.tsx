@@ -36,7 +36,7 @@ export const login = async (email: string, password: string) => {
                 firstName: decoded.firstName,
                 lastName: decoded.lastName,
                 phoneNumber: decoded.phoneNumber,
-                companyId: decoded.company?.id,
+                companyId: decoded.companyId,
                 dateOfBirth: decoded.dateOfBirth,
                 role: decoded.role,
             };

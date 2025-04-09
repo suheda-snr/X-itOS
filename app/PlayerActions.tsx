@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { View, StyleSheet, Animated, PanResponder, Pressable, Text, Button, Image } from "react-native";
+import { View, StyleSheet, Animated, PanResponder, Pressable, Text, ScrollView, Image } from "react-native";
 import Svg, { Rect, Circle, Text as SvgText, Line } from "react-native-svg";
 import { Alert } from "react-native";
 import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
@@ -41,15 +41,12 @@ interface Sensor {
 }
 
 const PlayerActions: React.FC = () => {
-  const scale = useRef(new Animated.Value(1)).current;
-  const translateX = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(0)).current;
-  const [openItem, setOpenItem] = useState<string | null>(null);
   const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
   const puzzlesRef = useRef<Puzzle[]>([]);
   const [sensors, setSensors] = useState<Sensor[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
   const timerRef = useRef<Array<NodeJS.Timeout | Function>>([]);
+  const [loading, setLoading] = useState<boolean>(false)
 
   useEffect(() => {
     puzzlesRef.current = puzzles;
@@ -137,6 +134,18 @@ const PlayerActions: React.FC = () => {
     };
   }, []);
 
+  const updatePuzzleStatus = async (
+    puzzleId: string,
+    updates: { [key: string]: any },
+  ) => {
+    try {
+      const stageRef = doc(db, "puzzles", puzzleId);
+      await updateDoc(stageRef, updates);
+    } catch (error) {
+      console.error("Error updating puzzle:", error);
+    }
+  };
+
   const updatePuzzleInFirebase = async (
     puzzleId: string,
     stageId: string,
@@ -170,336 +179,296 @@ const PlayerActions: React.FC = () => {
     Alert.alert(title, message, [{ text: "OK" }], { cancelable: true });
   };
 
-  const toggleItem = (item: string) => {
-    setOpenItem(openItem === item ? null : item);
-  };
-
-  const handleSensorPress = async (sensorId: string) => {
-    try {
-      const sensor = sensors.find((s) => s.id === sensorId);
-      if (!sensor) {
-        showAlertDialog({
-          title: "Error",
-          message: `Sensor with ID ${sensorId} not found.`,
-        });
-        return;
-      }
-
-      const updatedStatus = !sensor.isActive;
-      await updateSensorInFirebase(sensorId, { isActive: updatedStatus });
-
-      showAlertDialog({
-        title: "Sensor Updated",
-        message: `The ${sensorId} sensor is now ${updatedStatus ? "Active" : "Inactive"}.`,
-      });
-    } catch (error) {
-      console.error("Error updating sensor:", error);
-      showAlertDialog({
-        title: "Error",
-        message: "Failed to update the sensor. Please try again.",
-      });
-    }
-  };
-
-  const handleStart = () => {
-    if (gameStarted) return;
-    setGameStarted(true);
+  const startTheGame = async() => {
+    await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "actions.isActivated": true, });
     showAlertDialog({
       title: "Start",
       message: "Game started! Temple wall action activated.",
     });
-
-    const puzzleId = puzzles[0]?.id || "puzzle_1";
-    let stageId = "temple_wall";
-
-    updatePuzzleInFirebase(puzzleId, stageId, {
-      "actions.isActivated": true,
-    });
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const templeWallInteractedPiece1 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
-        const templeWallInteractedPiece2 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_2?.isInteracted;
-
-        console.log("Hint 1 - templeWallInteractedPiece1:", templeWallInteractedPiece1);
-        console.log("Hint 1 - templeWallInteractedPiece2:", templeWallInteractedPiece2);
-
-        if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
-          updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_1", { isShared: true });
-          showAlertDialog({ title: "Hint 1", message: "Check the diary" });
-        }
-      }, 20 * 1000) // 20 seconds
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const templeWallInteractedPiece1 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
-        const templeWallInteractedPiece2 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_2?.isInteracted;
-        console.log("Hint 2 - templeWallInteractedPiece1:", templeWallInteractedPiece1);
-        console.log("Hint 2 - templeWallInteractedPiece2:", templeWallInteractedPiece2);
-        if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
-          updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_2", { isShared: true });
-          showAlertDialog({ title: "Hint 2", message: "Check the temple wall stones" });
-        }
-      }, 60 * 1000) // 1 minute
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const templeWallInteractedPiece1 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
-        const templeWallInteractedPiece2 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_2?.isInteracted;
-        console.log("Automation - templeWallInteractedPiece1:", templeWallInteractedPiece1);
-        console.log("Automation - templeWallInteractedPiece2:", templeWallInteractedPiece2);
-        if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
-          updateSensorInFirebase("TW_sign_lights", { isActive: true });
-          updatePuzzleInFirebase(puzzleId, "totem", { "actions.isActivated": true });
-          showAlertDialog({
-            title: "Automation",
-            message: "TW_sign_lights and Totem action activated due to inactivity.",
-          });
-        }
-      }, 90 * 1000) // 90 seconds
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const totemInteracted = puzzlesRef.current[0]?.stages?.totem?.pieces?.piece_1?.isInteracted;
-        console.log("Automation - totemInteracted:", totemInteracted);
-        if (!totemInteracted) {
-          updatePuzzleInFirebase(puzzleId, "totem", {}, "hint_3", { isShared: true });
-          showAlertDialog({
-            title: "Hint 3",
-            message: "Look for the signs in the room same as light signs",
-          });
-        }
-      }, 120 * 1000) // 2 minutes
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const totemInteracted = puzzlesRef.current[0]?.stages?.totem?.pieces?.piece_1?.isInteracted;
-        console.log("Automation - totemInteracted:", totemInteracted);
-        if (!totemInteracted) {
-          updateSensorInFirebase("TW_door", { isActive: true });
-          updateSensorInFirebase("main_light", { isActive: true });
-          updatePuzzleInFirebase("puzzle_2", "piece_1", { "actions.isActivated": true });
-          showAlertDialog({
-            title: "Automation",
-            message: "TW_door and main light activated due to inactivity. Puzzle 2 unlocked.",
-          });
-        }
-      }, 150 * 1000)
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        // Check if all pieces are interacted with
-        const piece1 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_1?.isInteracted;
-        const piece2 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_2?.isInteracted;
-        const piece3 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_3?.isInteracted;
-        const piece4 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_4?.isInteracted;
-        const piece5 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_5?.isInteracted;
-        const piece6 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_6?.isInteracted;
-
-        const puzzleCompleted = piece1 && piece2 && piece3 && piece4 && piece5 && piece6;
-
-        if (!puzzleCompleted) {
-          updatePuzzleInFirebase("puzzle_2", "piece_1", {}, "hint_1", { isShared: true });
-          showAlertDialog({
-            title: "Hint 1",
-            message: "Check if all pieces on the table are in the correct place.",
-          });
-        }
-      }, 180 * 1000)
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        // Check if all pieces are interacted with
-        const piece1 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_1?.isInteracted;
-        const piece2 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_2?.isInteracted;
-        const piece3 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_3?.isInteracted;
-        const piece4 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_4?.isInteracted;
-        const piece5 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_5?.isInteracted;
-        const piece6 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_6?.isInteracted;
-
-        const puzzleCompleted = piece1 && piece2 && piece3 && piece4 && piece5 && piece6;
-
-        if (!puzzleCompleted) {
-          updateSensorInFirebase("main_light", { isActive: false });
-          updateSensorInFirebase("red_toplight", { isActive: true });
-          updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "actions.isActivated": true });
-
-          showAlertDialog({
-            title: "Puzzle 2 Complete",
-            message: "Main light deactivated, red top light activated, and Puzzle 3 unlocked due to inactivity.",
-          });
-        }
-      }, 200 * 1000) // 2 minutes 40 seconds
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const wallButtons1 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_1?.isInteracted;
-        const wallButtons2 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_2?.isInteracted;
-        const wallButtons3 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_3?.isInteracted;
-        const wallButtons4 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_4?.isInteracted;
-        const wallButtons5 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_5?.isInteracted;
-        const wallButtons6 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_6?.isInteracted;
-
-        if (!wallButtons1 && !wallButtons2 && !wallButtons4 && !wallButtons6) {
-          updatePuzzleInFirebase("puzzle_3", "wall_buttons", {}, "hint_1", { isShared: true });
-          showAlertDialog({ title: "Hint 1", message: "" });
-        }
-      }, 220 * 1000)
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const wallButtons1 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_1?.isInteracted;
-        const wallButtons2 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_2?.isInteracted;
-        const wallButtons3 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_3?.isInteracted;
-        const wallButtons4 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_4?.isInteracted;
-        const wallButtons5 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_5?.isInteracted;
-        const wallButtons6 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_6?.isInteracted;
-
-        if (!wallButtons1 && !wallButtons2 && !wallButtons3 && !wallButtons4 && !wallButtons5 && !wallButtons6) {
-          updateSensorInFirebase("locker_under_weights", { isActive: true });
-          updatePuzzleInFirebase("puzzle_4", "gears", { "actions.isActivated": true });
-          showAlertDialog({
-            title: "Automation",
-            message: "Locker under weights sensor activated and puzzle_4 stage activated due to inactivity.",
-          });
-        }
-      }, 250 * 1000)
-    );
   }
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: Animated.event(
-        [
-          null,
-          {
-            dx: translateX,
-            dy: translateY,
-          },
-        ],
-        { useNativeDriver: false }
-      ),
-    })
-  ).current;
+  const touchStoneWall = async() => {
+        setLoading(true)
+        await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "pieces.piece_1.isInteracted": true });
+        await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "pieces.piece_2.isInteracted": true });
+        await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "pieces.piece_3.isInteracted": true });
+
+        const templeWallInteractedPiece1 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
+        const templeWallInteractedPiece2 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_2?.isInteracted;
+        const templeWallInteractedPiece3 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_3?.isInteracted;
+
+        console.log("CHECKING...")
+        console.log("Automation - templeWallInteractedPiece1:", templeWallInteractedPiece1);
+        console.log("Automation - templeWallInteractedPiece2:", templeWallInteractedPiece2);
+        console.log("Automation - templeWallInteractedPiece2:", templeWallInteractedPiece2);
+
+        if (templeWallInteractedPiece1 && templeWallInteractedPiece2 && templeWallInteractedPiece3) {
+          await updateSensorInFirebase("TW_sign_lights", { isActive: true });
+          await updatePuzzleInFirebase("puzzle_1", "totem", { "actions.isActivated": true });
+          await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "isSolved": true });
+          setLoading(false)
+          showAlertDialog({
+            title: "Success!",
+            message: "Wall lights activated, stage solved, totem sensor activated",
+          });
+        }
+  }
+
+  const turnTotem = async() => {
+        setLoading(true)
+        await updatePuzzleInFirebase("puzzle_1", "totem", { "pieces.piece_1.isInteracted": true });
+        await updatePuzzleInFirebase("puzzle_1", "totem", { "pieces.piece_2.isInteracted": false });
+        await updatePuzzleInFirebase("puzzle_1", "totem", { "pieces.piece_3.isInteracted": true });
+        await updatePuzzleInFirebase("puzzle_1", "totem", { "pieces.piece_4.isInteracted": true });
+
+        const totemInteractedPiece1 = puzzlesRef.current[0]?.stages?.totem?.pieces?.piece_1?.isInteracted;
+        const totemInteractedPiece2 = puzzlesRef.current[0]?.stages?.totem?.pieces?.piece_2?.isInteracted;
+        const totemInteractedPiece3 = puzzlesRef.current[0]?.stages?.totem?.pieces?.piece_3?.isInteracted;
+        const totemInteractedPiece4 = puzzlesRef.current[0]?.stages?.totem?.pieces?.piece_4?.isInteracted;
+
+        console.log("CHECKING...")
+        console.log("Automation - templeWallInteractedPiece1:", totemInteractedPiece1);
+        console.log("Automation - templeWallInteractedPiece2:", totemInteractedPiece2);
+        console.log("Automation - templeWallInteractedPiece2:", totemInteractedPiece3);
+        console.log("Automation - templeWallInteractedPiece2:", totemInteractedPiece4);
+
+        if (totemInteractedPiece1 && !totemInteractedPiece2 && totemInteractedPiece3 && totemInteractedPiece4) {
+          await updateSensorInFirebase("TW_door", { isActive: true });
+          await updateSensorInFirebase("main_light", { isActive: true });
+          await updateSensorInFirebase("table", { isActive: true });
+          await updatePuzzleInFirebase("puzzle_1", "totem", { "isSolved": true });
+          await updatePuzzleInFirebase("puzzle_1", "totem", { "isSolved": true });
+          await updatePuzzleInFirebase("puzzle_2", "piece_1", { "actions.isActivated": true });
+          await updatePuzzleStatus("puzzle_1", {"isSolved": true})
+          setLoading(false)
+
+          showAlertDialog({
+            title: "Puzzle 1 Completed",
+            message: "Totem in correct position, door opens. Puzzle 2 unlocked.",
+          });
+        }
+  }
+
+  const placePuzzlePiecesInCorrectOrder = async() => {
+        setLoading(true)
+        await updatePuzzleInFirebase("puzzle_2", "piece_1", { "pieces.piece_1.isInteracted": true });
+        await updatePuzzleInFirebase("puzzle_2", "piece_1", { "pieces.piece_2.isInteracted": true });
+        await updatePuzzleInFirebase("puzzle_2", "piece_1", { "pieces.piece_3.isInteracted": true });
+        await updatePuzzleInFirebase("puzzle_2", "piece_1", { "pieces.piece_4.isInteracted": true });
+        await updatePuzzleInFirebase("puzzle_2", "piece_1", { "pieces.piece_5.isInteracted": true });
+        await updatePuzzleInFirebase("puzzle_2", "piece_1", { "pieces.piece_6.isInteracted": true });
+
+        const puzzleInteractedPiece1 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_1?.isInteracted;
+        const puzzleInteractedPiece2 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_2?.isInteracted;
+        const puzzleInteractedPiece3 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_3?.isInteracted;
+        const puzzleInteractedPiece4 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_4?.isInteracted;
+        const puzzleInteractedPiece5 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_5?.isInteracted;
+        const puzzleInteractedPiece6 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_6?.isInteracted;
+
+        console.log("CHECKING...")
+        console.log("Puzzle piece 1 - ", puzzleInteractedPiece1);
+        console.log("Puzzle piece 2 - ", puzzleInteractedPiece2);
+        console.log("Puzzle piece 3 - ", puzzleInteractedPiece3);
+        console.log("Puzzle piece 4 - ", puzzleInteractedPiece4);
+        console.log("Puzzle piece 5 - ", puzzleInteractedPiece5);
+        console.log("Puzzle piece 6 - ", puzzleInteractedPiece6);
+
+        if (puzzleInteractedPiece1 && puzzleInteractedPiece2 && puzzleInteractedPiece3 && puzzleInteractedPiece4 && puzzleInteractedPiece5 && puzzleInteractedPiece6) {
+          await updateSensorInFirebase("main_light", { isActive: false });
+          await updateSensorInFirebase("red_toplight", { isActive: true });
+          await updatePuzzleInFirebase("puzzle_2", "piece_1", { "isSolved": true });
+          await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "actions.isActivated": true });
+          await updatePuzzleStatus("puzzle_2", {"isSolved": true})
+          setLoading(false)
+
+          showAlertDialog({
+            title: "Puzzle 2 Completed",
+            message: "Main light deactivated, red top light activated, and Puzzle 3 unlocked.",
+          });
+        }
+  }
+
+  const pressCorrectWallButtons = async() => {
+    setLoading(true)
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_1.isInteracted": true });
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_2.isInteracted": true });
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_3.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_4.isInteracted": true });
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_5.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_6.isInteracted": true });
+
+    const wallButtons1 = puzzlesRef.current[2]?.stages?.wall_buttons?.pieces?.button_1?.isInteracted;
+    const wallButtons2 = puzzlesRef.current[2]?.stages?.wall_buttons?.pieces?.button_2?.isInteracted;
+    const wallButtons3 = puzzlesRef.current[2]?.stages?.wall_buttons?.pieces?.button_3?.isInteracted;
+    const wallButtons4 = puzzlesRef.current[2]?.stages?.wall_buttons?.pieces?.button_4?.isInteracted;
+    const wallButtons5 = puzzlesRef.current[2]?.stages?.wall_buttons?.pieces?.button_5?.isInteracted;
+    const wallButtons6 = puzzlesRef.current[2]?.stages?.wall_buttons?.pieces?.button_6?.isInteracted;
+
+    console.log("button 1 - " + wallButtons1)
+    console.log("button 2 - " + wallButtons2)
+    console.log("button 3 - " + wallButtons3)
+    console.log("button 4 - " + wallButtons4)
+    console.log("button 5 - " + wallButtons5)
+    console.log("button 6 - " + wallButtons6)
+
+
+    if(wallButtons1 && wallButtons2 && !wallButtons3 && wallButtons4 && !wallButtons5 && wallButtons6){
+      await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "isSolved": true });
+      await updatePuzzleStatus("puzzle_3", {"isSolved": true})
+      await updateSensorInFirebase("locker_under_weights", { isActive: true });
+      await updatePuzzleInFirebase("puzzle_4", "gears", { "actions.isActivated": true });
+      await updateSensorInFirebase("main_light", { isActive: true });
+      setLoading(false)
+      showAlertDialog({
+         title: "Puzzle 3 Completed",
+         message: "Locker under weights sensor activated and Puzzle 4 is activated.",
+      });
+    }
+  }
+
+  const putGearsOnCorrectPlaces = async() => {
+    setLoading(true)
+    await updatePuzzleInFirebase("puzzle_4", "gears", { "pieces.gears.isInteracted": true });
+
+    const gears = puzzlesRef.current[3]?.stages?.gears?.pieces?.gears?.isInteracted;
+
+    console.log("gears - " + gears)
+
+    if(gears){
+      await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "isSolved": true });
+      await updatePuzzleStatus("puzzle_3", {"isSolved": true})
+      await updateSensorInFirebase("locker_under_weights", { isActive: true });
+      await updatePuzzleInFirebase("puzzle_4", "gears", { "actions.isActivated": true });
+      await updateSensorInFirebase("main_light", { isActive: true });
+      setLoading(false)
+      showAlertDialog({
+         title: "Puzzle 3 Completed",
+         message: "Locker under weights sensor activated and Puzzle 4 is activated.",
+      });
+    }
+  }
+
+  const resetSensorsAndPuzzles = async() => {
+    console.log("RESETTING.....")
+    setLoading(true)
+    //puzzle 1 stage 1
+    await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "isSolved": false });
+    await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "actions.isActivated": false, });
+    await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "pieces.piece_1.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "pieces.piece_2.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "pieces.piece_3.isInteracted": false });
+    await updateSensorInFirebase("TW_sign_lights", { isActive: false });
+    //puzzle 1 stage 2
+    await updatePuzzleInFirebase("puzzle_1", "totem", { "isSolved": false });
+    await updatePuzzleInFirebase("puzzle_1", "totem", { "actions.isActivated": false });
+    await updatePuzzleInFirebase("puzzle_1", "totem", { "pieces.piece_1.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_1", "totem", { "pieces.piece_2.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_1", "totem", { "pieces.piece_3.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_1", "totem", { "pieces.piece_4.isInteracted": false });
+    await updateSensorInFirebase("TW_door", { isActive: false });
+    await updateSensorInFirebase("main_light", { isActive: false });
+    await updateSensorInFirebase("table", { isActive: false });
+    await updatePuzzleStatus("puzzle_1", {"isSolved": false})
+    await updatePuzzleInFirebase("puzzle_2", "piece_1", { "actions.isActivated": false });
+    //puzzle 2 stage 1
+    for(let i = 1; i < 7; i++){
+      await updatePuzzleInFirebase("puzzle_2", "piece_1", { [`pieces.piece_${i}.isInteracted`]: false });
+    }
+    await updateSensorInFirebase("main_light", { isActive: false });
+    await updateSensorInFirebase("red_toplight", { isActive: false });
+    await updatePuzzleInFirebase("puzzle_2", "piece_1", { "isSolved": false });
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "actions.isActivated": false });
+    await updatePuzzleStatus("puzzle_2", {"isSolved": false})
+    setLoading(false)
+    //puzzle 3 stage 1
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_1.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_2.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_3.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_4.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_5.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_6.isInteracted": false });
+
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "isSolved": false });
+    await updatePuzzleStatus("puzzle_3", {"isSolved": false})
+    await updateSensorInFirebase("locker_under_weights", { isActive: false });
+    await updatePuzzleInFirebase("puzzle_4", "gears", { "actions.isActivated": false });
+    await updateSensorInFirebase("main_light", { isActive: false });
+    //puzzle 4 stage 1
+
+    showAlertDialog({
+      title: "Success!",
+      message: "Reseted",
+    });
+  }
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.button}>
-        <Text style={styles.buttonText}>Button 1</Text>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <Pressable style={styles.button} onPressIn={startTheGame}>
+        <Text style={styles.buttonText}>
+          {loading ? "Loading..." : "Start"}
+        </Text>
       </Pressable>
 
-      <Pressable style={styles.button}>
-        <Text style={styles.buttonText}>Button 2</Text>
+      <Pressable style={styles.button} onPressIn={touchStoneWall}>
+        <Text style={styles.buttonText}>
+          {loading ? "Loading..." : "Touch stone pieces"}
+        </Text>
       </Pressable>
 
-      <Pressable style={styles.button}>
-        <Text style={styles.buttonText}>Button 3</Text>
+      <Pressable style={styles.button} onPressIn={turnTotem}>
+        <Text style={styles.buttonText}>
+          {loading ? "Loading..." : "Turn totem in correct position"}
+        </Text>
       </Pressable>
-    </View>
+
+      <Pressable style={styles.button} onPressIn={placePuzzlePiecesInCorrectOrder}>
+        <Text style={styles.buttonText}>
+          {loading ? "Loading..." : "Put puzzle pieces on the table in correct order"}
+        </Text>
+      </Pressable>
+
+      <Pressable style={styles.button} onPressIn={pressCorrectWallButtons}>
+        <Text style={styles.buttonText}>
+          {loading ? "Loading..." : "Press buttons 1,2,4,6"}
+        </Text>
+      </Pressable>
+
+      <Pressable style={styles.button} onPressIn={resetSensorsAndPuzzles}>
+        <Text style={styles.buttonText}>
+          {loading ? "Loading..." : "Reset"}
+        </Text>
+      </Pressable>
+
+    </ScrollView>
+  </View>
   );
 };
 
 const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: "#333", // Light black background
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    button: {
-      backgroundColor: "orange",
-      padding: 15,
-      borderRadius: 8,
-      marginVertical: 10,
-      width: 200,
-      alignItems: "center",
-    },
-    buttonText: {
-      color: "white",
-      fontSize: 16,
-      fontWeight: "bold",
-    },
-  });
+  container: {
+    flex: 1,
+    backgroundColor: "#333",
+  },
+  scrollContainer: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  button: {
+    backgroundColor: "orange",
+    padding: 15,
+    borderRadius: 8,
+    marginVertical: 10,
+    width: "50%", 
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+});
 
-// const styles = StyleSheet.create({
-//   outerContainer: {
-//     flex: 1,
-//     flexDirection: "row",
-//     alignItems: "center",
-//     justifyContent: "center",
-//   },
-//   startButtonContainer: {
-//     position: "absolute",
-//     top: 10,
-//     zIndex: 1,
-//   },
-//   inventoryContainer: {
-//     width: 150,
-//     marginRight: 20,
-//   },
-//   inventoryTitle: {
-//     fontSize: 18,
-//     fontWeight: "bold",
-//     marginBottom: 10,
-//     color: "#333",
-//   },
-//   itemList: {
-//     backgroundColor: "#f0f0f0",
-//     borderRadius: 5,
-//     padding: 10,
-//   },
-//   itemContainer: {
-//     marginBottom: 10,
-//   },
-//   itemText: {
-//     fontSize: 16,
-//     fontWeight: "bold",
-//     color: "#333",
-//   },
-//   itemDetails: {
-//     fontSize: 14,
-//     color: "#666",
-//     marginLeft: 10,
-//     marginTop: 5,
-//   },
-//   container: {
-//     flex: 1,
-//     alignItems: "center",
-//     justifyContent: "center",
-//   },
-//   sensorsContainer: {
-//     width: 150,
-//     marginLeft: 20,
-//     alignItems: "center",
-//   },
-//   sensorsTitle: {
-//     fontSize: 18,
-//     fontWeight: "bold",
-//     marginBottom: 10,
-//     color: "#333",
-//   },
-//   sensorButton: {
-//     backgroundColor: "#ddd",
-//     padding: 10,
-//     marginVertical: 5,
-//     width: "100%",
-//     borderRadius: 5,
-//     alignItems: "center",
-//   },
-//   sensorText: {
-//     fontSize: 16,
-//     color: "#333",
-//   },
-// });
 
 export default PlayerActions;

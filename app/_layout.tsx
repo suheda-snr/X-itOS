@@ -29,6 +29,7 @@ export default function RootLayout() {
         <Stack.Screen name="/QRScanner/TicketQR" options={{ title: "Ticket Scanning" }} />
         <Stack.Screen name="/QRScanner/PersonalQR" options={{ title: "Personal QR" }} />
         <Stack.Screen name="GameStatistics/[TeamStats]" options={{ title: "Team Statistics" }} />
+        <Stack.Screen name="PlayerActions" options={{ title: "Player Actions" }} />
       </Stack>
     </>
   );
