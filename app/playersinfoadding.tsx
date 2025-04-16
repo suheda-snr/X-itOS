@@ -7,7 +7,6 @@ import { router } from "expo-router";
 import { useGameStore } from "@/stateStore/gameStore";
 import { DisplayPlayers, Player } from "@/types/player";
 import { addGuestPlayers } from "@/api/gameApi";
-import { v4 as uuidv4 } from 'uuid';
 import { updateGameData } from "@/api/gameApi";
 
 

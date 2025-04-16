@@ -1,5 +1,6 @@
 import { decodeJWT } from '../utils/jwtUtils';
 import useAuthStore from "@/stateStore/authStore";
+import { useGameStore } from '@/stateStore/gameStore';
 import { User } from "../types/user";
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -36,7 +37,7 @@ export const login = async (email: string, password: string) => {
                 firstName: decoded.firstName,
                 lastName: decoded.lastName,
                 phoneNumber: decoded.phoneNumber,
-                companyId: decoded.company?.id,
+                companyId: decoded.companyId,
                 dateOfBirth: decoded.dateOfBirth,
                 role: decoded.role,
             };
@@ -105,6 +106,7 @@ export const loginWithAccessCode = async (accessCode: string, companyId: string,
 
             // Save the JWT and user info in the store based on the role
             await useAuthStore.getState().setJwt(token, userData, role);
+            useGameStore.getState().setAdminJwt(token)
             return token;
         } else {
             console.log('Access code login failed:', data.message);

@@ -3,6 +3,8 @@ import { useGameStore } from '@/stateStore/gameStore';
 import { Booking } from '@/types/booking';
 import { Game } from '@/types/game';
 import { DisplayPlayers, Player } from '@/types/player';
+import { isAdult as checkIsAdult } from '@/utils/ageUtils';
+import { User } from '@/types/user';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -138,20 +140,25 @@ export const addGuestPlayers = async (players: DisplayPlayers[]) => {
 };
 
 
-export const addPlayerWithAccount = async(userId: string) => {
+export const addPlayerWithAccount = async(userId: string, isAdult?: boolean) => {
     try {
         const jwtCompany = useAuthStore.getState().jwtCompany;
+        let userInfo
 
         if (!jwtCompany) {
             console.error('JWT token not found. User is not authenticated.');
             return;
         }
 
-        const newPlayer = {
+        if(isAdult == undefined){
+            userInfo = await getPlayerInfo(userId)
+        }
+
+        let newPlayer = {
             gameId: useGameStore.getState().gameData?.id,
             userId: userId,
             isGuest: false,
-            isAdult: true //TBA function to get age
+            isAdult: isAdult != undefined ? isAdult : checkIsAdult(userInfo?.dateOfBirth ?? '')
         }
 
         console.log("Attemting to add player with account")
@@ -191,9 +198,7 @@ export const getBookingDetails = async(bookingId: string) => {
             return;
         }
 
-        //const bookingId = useGameStore.getState().gameData?.bookingId
         console.log("Bookind Id: ")
-
         console.log(bookingId)
 
         const response = await fetch(`${BASE_URL}/api/booking/${bookingId}`, {
@@ -216,7 +221,7 @@ export const getBookingDetails = async(bookingId: string) => {
 }
 
 
-  const addPlayerToDisplay = (player: Player): DisplayPlayers => {
+const addPlayerToDisplay = (player: Player): DisplayPlayers => {
     const newDisplayPlayer: DisplayPlayers = {
       id: `${useGameStore.getState().displayPlayers.length}`, 
       name: player.user 
@@ -228,3 +233,112 @@ export const getBookingDetails = async(bookingId: string) => {
 
     return newDisplayPlayer
   };
+
+const getPlayerInfo = async(userId: string) => {
+    try {
+        const adminToken = useGameStore.getState().adminJwt
+
+        if(adminToken == undefined){
+            console.log("Admin JWT undefined")
+            return
+        }
+
+        const response = await fetch(`${BASE_URL}/api/user/${userId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`,
+            },
+        })
+
+        const userInfo: User = await response.json()
+        console.log("USER DATA FROM QR CODE: ")
+        console.log(userInfo)
+        return userInfo
+    } catch (error) {
+        console.log("Error getting user data from QR")
+        console.log(error)
+    }
+  }
+
+export const validateBooking = async (token: string) => {
+    const jwtCompany = useAuthStore.getState().jwtCompany;
+
+    if (!jwtCompany) {
+        console.error('JWT token not found. User is not authenticated.');
+        return { success: false, error: 'Unauthenticated' };
+    }
+
+    try {
+        const response = await fetch(`${BASE_URL}/api/booking/validate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtCompany}`,
+            },
+            body: JSON.stringify({ token }),
+        });
+
+        const contentType = response.headers.get('Content-Type') || '';
+
+        let data: any = null;
+
+        if (contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            data = await response.text();
+        }
+
+        if (!response.ok) {
+            return {
+                success: false,
+                status: response.status,
+                error: data?.message || 'Server returned an error',
+                data,
+            };
+        }
+
+        return {
+            success: true,
+            data,
+        };
+    } catch (error: any) {
+        return {
+            success: false,
+            error: error.message || 'Unexpected error',
+        };
+    }
+};
+
+export const validatePersonalQr = async(token: string) => {
+    try {
+        const response = await fetch(`${BASE_URL}/api/user/me`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        const userData = await response.json();
+
+        if (!response.ok) {
+            return {
+                success: false,
+                status: response.status,
+                error: userData?.message || 'Server error occurred',
+                userData,
+            };
+        }
+
+        return {
+            success: true,
+            userData,
+        };
+    } catch (error: any) {
+        return {
+            success: false,
+            error: error.message || 'Unexpected error',
+        };
+    }
+};
+
