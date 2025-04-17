@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { View, StyleSheet, Animated, PanResponder, Pressable, Text, Button, Image } from "react-native";
+import { View, StyleSheet, Animated, PanResponder, Pressable, Text, Button, Image, Modal, ScrollView } from "react-native";
 import Svg, { Rect, Circle, Text as SvgText, Line } from "react-native-svg";
 import { Alert } from "react-native";
 import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
@@ -40,6 +40,13 @@ interface Sensor {
   isActive: boolean;
 }
 
+interface ChangeLogEntry {
+  timestamp: string;
+  type: 'puzzle' | 'sensor';
+  id: string;
+  changes: Record<string, any>;
+}
+
 const Map: React.FC = () => {
   const scale = useRef(new Animated.Value(1)).current;
   const translateX = useRef(new Animated.Value(0)).current;
@@ -50,6 +57,8 @@ const Map: React.FC = () => {
   const [sensors, setSensors] = useState<Sensor[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
   const timerRef = useRef<Array<NodeJS.Timeout | Function>>([]);
+  const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
+  const [isChangeLogVisible, setIsChangeLogVisible] = useState(false);
 
   useEffect(() => {
     puzzlesRef.current = puzzles;
@@ -57,6 +66,17 @@ const Map: React.FC = () => {
 
   useEffect(() => {
     const puzzlesUnsubscribe = onSnapshot(collection(db, "puzzles"), (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "modified") {
+          setChangeLog(prev => [...prev, {
+            timestamp: new Date().toISOString(),
+            type: 'puzzle',
+            id: change.doc.id,
+            changes: change.doc.data()
+          }]);
+        }
+      });
+
       const puzzlesData = snapshot.docs.map((docSnapshot) => {
         const puzzle: Puzzle = {
           id: docSnapshot.id,
@@ -116,6 +136,17 @@ const Map: React.FC = () => {
     });
 
     const sensorsUnsubscribe = onSnapshot(collection(db, "sensors"), (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "modified") {
+          setChangeLog(prev => [...prev, {
+            timestamp: new Date().toISOString(),
+            type: 'sensor',
+            id: change.doc.id,
+            changes: change.doc.data()
+          }]);
+        }
+      });
+
       const sensorsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...(doc.data() as Omit<Sensor, "id">),
@@ -176,7 +207,6 @@ const Map: React.FC = () => {
 
   const handleSensorPress = async (sensorName: string) => {
     try {
-      // Find the sensor by its name
       const sensor = sensors.find((s) => s.id === sensorName);
       if (!sensor) {
         showAlertDialog({
@@ -187,8 +217,6 @@ const Map: React.FC = () => {
       }
 
       const updatedStatus = !sensor.isActive;
-
-      // Update the sensor in Firebase using its name
       await updateSensorInFirebase(sensorName, { isActive: updatedStatus });
 
       showAlertDialog({
@@ -204,6 +232,9 @@ const Map: React.FC = () => {
     }
   };
 
+  const toggleChangeLog = () => {
+    setIsChangeLogVisible(!isChangeLogVisible);
+  };
 
   const handleStart = () => {
     if (gameStarted) return;
@@ -232,7 +263,7 @@ const Map: React.FC = () => {
           updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_1", { isShared: true });
           showAlertDialog({ title: "Hint", message: "Hint 1 is shared for puzzle_1" });
         }
-      }, 20 * 1000) // 20 seconds
+      }, 20 * 1000)
     );
 
     timerRef.current.push(
@@ -346,9 +377,7 @@ const Map: React.FC = () => {
       setTimeout(() => {
         const wallButtons1 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_1?.isInteracted;
         const wallButtons2 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_2?.isInteracted;
-        const wallButtons3 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_3?.isInteracted;
         const wallButtons4 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_4?.isInteracted;
-        const wallButtons5 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_5?.isInteracted;
         const wallButtons6 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_6?.isInteracted;
 
         if (!wallButtons1 && !wallButtons2 && !wallButtons4 && !wallButtons6) {
@@ -362,12 +391,10 @@ const Map: React.FC = () => {
       setTimeout(() => {
         const wallButtons1 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_1?.isInteracted;
         const wallButtons2 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_2?.isInteracted;
-        const wallButtons3 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_3?.isInteracted;
         const wallButtons4 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_4?.isInteracted;
-        const wallButtons5 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_5?.isInteracted;
         const wallButtons6 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_6?.isInteracted;
 
-        if (!wallButtons1 && !wallButtons2 && wallButtons3 && !wallButtons4 && wallButtons5 && !wallButtons6) {
+        if (!wallButtons1 && !wallButtons2 && !wallButtons4 && !wallButtons6) {
           updateSensorInFirebase("locker_under_weights", { isActive: true });
           updatePuzzleInFirebase("puzzle_4", "gears", { "actions.isActivated": true });
           showAlertDialog({
@@ -514,9 +541,9 @@ const Map: React.FC = () => {
 
     timerRef.current.push(
       setTimeout(() => {
-        const object1 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
-        const object2 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
-        const object3 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_3?.isInteracted;
+        const object1 = puzzlesRef.current[7]?.stages?.altar?.pieces?.piece_1?.isInteracted;
+        const object2 = puzzlesRef.current[7]?.stages?.altar?.pieces?.piece_2?.isInteracted;
+        const object3 = puzzlesRef.current[7]?.stages?.altar?.pieces?.piece_3?.isInteracted;
 
         if (!object1 && !object2 && !object3) {
           updatePuzzleInFirebase("puzzle_8", "altar", {}, "hint_1", { isShared: true });
@@ -528,9 +555,9 @@ const Map: React.FC = () => {
 
     timerRef.current.push(
       setTimeout(() => {
-        const object1 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
-        const object2 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
-        const object3 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_3?.isInteracted;
+        const object1 = puzzlesRef.current[7]?.stages?.altar?.pieces?.piece_1?.isInteracted;
+        const object2 = puzzlesRef.current[7]?.stages?.altar?.pieces?.piece_2?.isInteracted;
+        const object3 = puzzlesRef.current[7]?.stages?.altar?.pieces?.piece_3?.isInteracted;
 
         if (!object1 && !object2 && !object3) {
           updateSensorInFirebase("table_lock", { isActive: true });
@@ -543,8 +570,58 @@ const Map: React.FC = () => {
       }
         , 420 * 1000)
     )
-  }
 
+    timerRef.current.push(
+      setTimeout(() => {
+        const piece1 = puzzlesRef.current[7]?.stages?.pegs?.pieces?.piece_1?.isInteracted;
+        const piece2 = puzzlesRef.current[7]?.stages?.pegs?.pieces?.piece_2?.isInteracted;
+        const piece3 = puzzlesRef.current[7]?.stages?.pegs?.pieces?.piece_3?.isInteracted;
+
+        if (!piece1 && !piece2 && !piece3) {
+          updatePuzzleInFirebase("puzzle_9", "pegs", {}, "hint_1", { isShared: true });
+          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_9" });
+        }
+      }
+        , 430 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const piece1 = puzzlesRef.current[7]?.stages?.pegs?.pieces?.piece_1?.isInteracted;
+        const piece2 = puzzlesRef.current[7]?.stages?.pegs?.pieces?.piece_2?.isInteracted;
+        const piece3 = puzzlesRef.current[7]?.stages?.pegs?.pieces?.piece_3?.isInteracted;
+
+        if (!piece1 && !piece2 && !piece3) {
+          updateSensorInFirebase("table_lock", { isActive: true });
+          updatePuzzleInFirebase("puzzle_9", "middle_table", { "actions.isActivated": true });
+          showAlertDialog({
+            title: "Automation",
+            message: " Middle table stage is activated and table lock is opened due to inactivity.",
+          });
+        }
+      }
+        , 440 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const skull = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
+        const replacement_piece = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
+
+        if (!skull && !replacement_piece) {
+          updateSensorInFirebase("intable_sensor", { isActive: true });
+          updatePuzzleInFirebase("puzzle_9", "middle_table", { "actions.isActivated": true });
+          showAlertDialog({
+            title: "Automation",
+            message: " Middle table stage is activated and table lock is opened due to inactivity.",
+          });
+        }
+      }
+        , 450 * 1000)
+    )
+
+
+  }
 
   const panResponder = useRef(
     PanResponder.create({
@@ -567,7 +644,42 @@ const Map: React.FC = () => {
     <View style={styles.outerContainer}>
       <View style={styles.startButtonContainer}>
         <Button title="Start" onPress={handleStart} disabled={gameStarted} />
+        <Button
+          title="Show Changes"
+          onPress={toggleChangeLog}
+          color="#007AFF"
+        />
       </View>
+
+      <Modal
+        visible={isChangeLogVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={toggleChangeLog}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Change Log</Text>
+            <ScrollView style={styles.changeLogContainer}>
+              {changeLog.length === 0 ? (
+                <Text>No changes recorded yet</Text>
+              ) : (
+                changeLog.map((entry, index) => (
+                  <View key={index} style={styles.changeEntry}>
+                    <Text style={styles.changeTimestamp}>
+                      {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </Text>
+                    <Text>Type: {entry.type}</Text>
+                    <Text>ID: {entry.id}</Text>
+                    <Text>Changes: {JSON.stringify(entry.changes, null, 2)}</Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+            <Button title="Close" onPress={toggleChangeLog} />
+          </View>
+        </View>
+      </Modal>
 
       <View style={styles.inventoryContainer}>
         <Text style={styles.inventoryTitle}>Inventory</Text>
@@ -829,6 +941,38 @@ const styles = StyleSheet.create({
   sensorText: {
     fontSize: 16,
     color: "#333",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  changeLogContainer: {
+    maxHeight: '80%',
+    marginBottom: 10,
+  },
+  changeEntry: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  changeTimestamp: {
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
 });
 
