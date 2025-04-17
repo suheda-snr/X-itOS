@@ -6,10 +6,25 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useGameStore } from "@/stateStore/gameStore";
 import { DisplayPlayers, Player } from "@/types/player";
-import { addGuestPlayers } from "@/api/gameApi";
-import { updateGameData } from "@/api/gameApi";
+import { addGuestPlayers, updateGameData } from "@/api/gameApi";
+import * as Profanity from "@2toad/profanity";
 
+const finnishProfanity = ["vittu", "perkele", "saatana", "jumalauta", "helvetti", "nussi", "perse", "kuora", "paska", "kyrpä"];
 
+// Initialize English profanity checker
+const profanity = new Profanity.Profanity({
+  language: "en",
+});
+
+const checkProfanity = (name: string): boolean => {
+  // Check English profanity
+  if (profanity.exists(name)) {
+    return true;
+  }
+
+  const nameLower = name.toLowerCase();
+  return finnishProfanity.some((word) => nameLower.includes(word));
+};
 
 const PlayersInfoAddingScreen: React.FC = () => {
   const { gameData, updateGameData: updateStoreGameData } = useGameStore();
@@ -32,7 +47,7 @@ const PlayersInfoAddingScreen: React.FC = () => {
   };
 
   const addGuest = () => {
-    const newGuest: DisplayPlayers = { 
+    const newGuest: DisplayPlayers = {
       id: `${displayPlayers.length * 2}`,
       name: `Guest ${displayPlayers.length + 1}`,
       isGuest: true,
@@ -47,6 +62,11 @@ const PlayersInfoAddingScreen: React.FC = () => {
   const handleSaveName = async () => {
     if (newTeamName.length > 15) {
       Alert.alert("Invalid Name", "Team names longer than 15 characters are not valid.");
+      return;
+    }
+
+    if (checkProfanity(newTeamName)) {
+      Alert.alert("Invalid Name", "The team name contains inappropriate language. Please choose a different name.");
       return;
     }
 
