@@ -26,6 +26,7 @@ interface Stage {
     description: string;
     isActivated: boolean;
   };
+  isSolved?: boolean
   interacted_sensor?: string;
   hints?: Record<string, Hint>;
   image_url?: string;
@@ -189,6 +190,19 @@ const PlayerActions: React.FC = () => {
     Alert.alert(title, message, [{ text: "OK" }], { cancelable: true });
   };
 
+  const isPreviousStepCompleted = (stageName: string, puzzleOrder: number) => {
+    const isCurrentPuzzleSolved = puzzlesRef.current[puzzleOrder]?.stages?.[stageName]?.isSolved;
+
+    if(!isCurrentPuzzleSolved){
+      showAlertDialog({
+        title: "Warning!",
+        message: "You can not proceed to the next step of the game without completing the previous one!",
+      });
+    }
+
+    return isCurrentPuzzleSolved
+  }
+
   const startTheGame = async() => {
     setLoading(true)
     await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "actions.isActivated": true, });
@@ -227,7 +241,10 @@ const PlayerActions: React.FC = () => {
   }
 
   const turnTotem = async() => {
-        setLoading(true)
+        setLoading(true)        
+
+        if(!isPreviousStepCompleted("temple_wall", 0)) return
+
         await updatePuzzleInFirebase("puzzle_1", "totem", { "pieces.piece_1.isInteracted": true });
         await updatePuzzleInFirebase("puzzle_1", "totem", { "pieces.piece_2.isInteracted": false });
         await updatePuzzleInFirebase("puzzle_1", "totem", { "pieces.piece_3.isInteracted": true });
@@ -238,17 +255,10 @@ const PlayerActions: React.FC = () => {
         const totemInteractedPiece3 = puzzlesRef.current[0]?.stages?.totem?.pieces?.piece_3?.isInteracted;
         const totemInteractedPiece4 = puzzlesRef.current[0]?.stages?.totem?.pieces?.piece_4?.isInteracted;
 
-        console.log("CHECKING...")
-        console.log("Automation - templeWallInteractedPiece1:", totemInteractedPiece1);
-        console.log("Automation - templeWallInteractedPiece2:", totemInteractedPiece2);
-        console.log("Automation - templeWallInteractedPiece2:", totemInteractedPiece3);
-        console.log("Automation - templeWallInteractedPiece2:", totemInteractedPiece4);
-
         if (totemInteractedPiece1 && !totemInteractedPiece2 && totemInteractedPiece3 && totemInteractedPiece4) {
           await updateSensorInFirebase("TW_door", { isActive: true });
           await updateSensorInFirebase("main_light", { isActive: true });
           await updateSensorInFirebase("table", { isActive: true });
-          await updatePuzzleInFirebase("puzzle_1", "totem", { "isSolved": true });
           await updatePuzzleInFirebase("puzzle_1", "totem", { "isSolved": true });
           await updatePuzzleInFirebase("puzzle_2", "piece_1", { "actions.isActivated": true });
           await updatePuzzleStatus("puzzle_1", {"isSolved": true})
@@ -263,6 +273,9 @@ const PlayerActions: React.FC = () => {
 
   const placePuzzlePiecesInCorrectOrder = async() => {
         setLoading(true)
+
+        if(!isPreviousStepCompleted("totem", 0)) return
+
         await updatePuzzleInFirebase("puzzle_2", "piece_1", { "pieces.piece_1.isInteracted": true });
         await updatePuzzleInFirebase("puzzle_2", "piece_1", { "pieces.piece_2.isInteracted": true });
         await updatePuzzleInFirebase("puzzle_2", "piece_1", { "pieces.piece_3.isInteracted": true });
@@ -276,14 +289,6 @@ const PlayerActions: React.FC = () => {
         const puzzleInteractedPiece4 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_4?.isInteracted;
         const puzzleInteractedPiece5 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_5?.isInteracted;
         const puzzleInteractedPiece6 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_6?.isInteracted;
-
-        console.log("CHECKING...")
-        console.log("Puzzle piece 1 - ", puzzleInteractedPiece1);
-        console.log("Puzzle piece 2 - ", puzzleInteractedPiece2);
-        console.log("Puzzle piece 3 - ", puzzleInteractedPiece3);
-        console.log("Puzzle piece 4 - ", puzzleInteractedPiece4);
-        console.log("Puzzle piece 5 - ", puzzleInteractedPiece5);
-        console.log("Puzzle piece 6 - ", puzzleInteractedPiece6);
 
         if (puzzleInteractedPiece1 && puzzleInteractedPiece2 && puzzleInteractedPiece3 && puzzleInteractedPiece4 && puzzleInteractedPiece5 && puzzleInteractedPiece6) {
           await updateSensorInFirebase("main_light", { isActive: false });
@@ -302,6 +307,9 @@ const PlayerActions: React.FC = () => {
 
   const pressCorrectWallButtons = async() => {
     setLoading(true)
+
+    if(!isPreviousStepCompleted("piece_1", 1)) return
+
     await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_1.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_2.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_3.isInteracted": false });
@@ -340,6 +348,9 @@ const PlayerActions: React.FC = () => {
 
   const putGearsOnCorrectPlaces = async() => {
     setLoading(true)
+
+    if(!isPreviousStepCompleted("wall_buttons", 2)) return
+
     await updatePuzzleInFirebase("puzzle_4", "gears", { "pieces.gears.isInteracted": true });
 
     const gears = puzzlesRef.current[3]?.stages?.gears?.pieces?.gears?.isInteracted;
@@ -360,6 +371,9 @@ const PlayerActions: React.FC = () => {
 
   const crankRotationForGears = async() => {
     setLoading(true)
+
+    if(!isPreviousStepCompleted("gears", 3)) return
+
     await updatePuzzleInFirebase("puzzle_4", "crank_rotation", { "piece.crank.isInteracted": true });
 
     const cranckRotation = puzzlesRef.current[3]?.stages?.crank_rotation?.piece?.crank?.isInteracted;
@@ -379,6 +393,9 @@ const PlayerActions: React.FC = () => {
 
   const insertBall = async() => {
     setLoading(true)
+
+    if(!isPreviousStepCompleted("crank_rotation", 3)) return
+
     await updatePuzzleInFirebase("puzzle_5", "insert_ball", { "pieces.ball.isInteracted": true });
 
     const ballInsert = puzzlesRef.current[4]?.stages?.insert_ball?.pieces?.ball?.isInteracted;
@@ -397,6 +414,9 @@ const PlayerActions: React.FC = () => {
 
   const crankRotationToGetBalls = async() => {
     setLoading(true)
+
+    if(!isPreviousStepCompleted("insert_ball", 4)) return
+
     await updatePuzzleInFirebase("puzzle_5", "crank_rotation_to_get_balls", { "pieces.crank.isInteracted": true });
 
     const ballInsert = puzzlesRef.current[4]?.stages?.crank_rotation_to_get_balls?.pieces?.crank?.isInteracted;
@@ -416,6 +436,9 @@ const PlayerActions: React.FC = () => {
 
   const weightPuzzle = async() => {
     setLoading(true)
+
+    if(!isPreviousStepCompleted("crank_rotation_to_get_balls", 4)) return
+
     await updatePuzzleInFirebase("puzzle_6", "weight", { "pieces.piece_1.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_6", "weight", { "pieces.piece_2.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_6", "weight", { "pieces.piece_3.isInteracted": true });
@@ -438,6 +461,9 @@ const PlayerActions: React.FC = () => {
 
   const placeWheelsInCorrectPosition = async() => {
     setLoading(true)
+
+    if(!isPreviousStepCompleted("weight", 5)) return
+
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "pieces.piece_1.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "pieces.piece_2.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "pieces.piece_3.isInteracted": true });
