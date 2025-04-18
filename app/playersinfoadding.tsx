@@ -6,7 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useGameStore } from "@/stateStore/gameStore";
 import { DisplayPlayers, Player } from "@/types/player";
-import { addGuestPlayers, updateGameData } from "@/api/gameApi";
+import { addGuestPlayers, updateGameData, updateBookingState } from "@/api/gameApi";
 import * as Profanity from "@2toad/profanity";
 
 const finnishProfanity = ["vittu", "perkele", "saatana", "jumalauta", "helvetti", "nussi", "perse", "kuora", "paska", "kyrpä"];
@@ -109,7 +109,7 @@ const PlayersInfoAddingScreen: React.FC = () => {
     if (displayPlayers?.filter(player => player.isAdult === null).length == 0) {
       Alert.alert(
         "Are you sure?",
-        "Are you sure you want to start the game?",
+        "Are you sure you want to proceed forward with the game?",
         [
           {
             text: "No",
@@ -120,7 +120,13 @@ const PlayersInfoAddingScreen: React.FC = () => {
             onPress: async () => {
               const playersParam = JSON.stringify(playersData);
               const teamNameParam = JSON.stringify(teamName);
-              await addGuestPlayers(displayPlayers)
+              await addGuestPlayers(displayPlayers);
+              const bookingId = gameData?.bookingId
+              if (bookingId) {
+                await updateBookingState(bookingId, "IN_PROGRESS");
+              } else {
+                console.error("Booking ID is undefined.");
+              }
               router.push(`/teaminfo?players=${encodeURIComponent(playersParam)}&teamName=${encodeURIComponent(teamNameParam)}`);
             },
           },
@@ -192,7 +198,7 @@ const PlayersInfoAddingScreen: React.FC = () => {
             <Text style={styles.buttonText}>Add Guest</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.startButton} onPress={() => startTheGame()}>
-            <Text style={styles.buttonText}>Start Game</Text>
+            <Text style={styles.buttonText}>Proceed to Game</Text>
           </TouchableOpacity>
         </View>
       </View>

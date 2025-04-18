@@ -100,7 +100,7 @@ export const addGuestPlayers = async (players: DisplayPlayers[]) => {
             .filter(player => player.isGuest === true)
             .map(async player => {
                 const newPlayer = {
-                    gameId: useGameStore.getState().gameData?.id, 
+                    gameId: useGameStore.getState().gameData?.id,
                     isGuest: true,
                     isAdult: player.isAdult
                 };
@@ -123,11 +123,11 @@ export const addGuestPlayers = async (players: DisplayPlayers[]) => {
 
         const setPlayersData = useGameStore.getState().setPlayersData;
 
-        if(addedPlayers){
+        if (addedPlayers) {
             addedPlayers.map(player => {
                 setPlayersData(player)
             })
-        }else{
+        } else {
             console.error("setPlayersData is not defined in the store");
         }
 
@@ -140,7 +140,7 @@ export const addGuestPlayers = async (players: DisplayPlayers[]) => {
 };
 
 
-export const addPlayerWithAccount = async(userId: string, isAdult?: boolean) => {
+export const addPlayerWithAccount = async (userId: string, isAdult?: boolean) => {
     try {
         const jwtCompany = useAuthStore.getState().jwtCompany;
         let userInfo
@@ -150,7 +150,7 @@ export const addPlayerWithAccount = async(userId: string, isAdult?: boolean) => 
             return;
         }
 
-        if(isAdult == undefined){
+        if (isAdult == undefined) {
             userInfo = await getPlayerInfo(userId)
         }
 
@@ -189,7 +189,7 @@ export const addPlayerWithAccount = async(userId: string, isAdult?: boolean) => 
 }
 
 
-export const getBookingDetails = async(bookingId: string) => {
+export const getBookingDetails = async (bookingId: string) => {
     try {
         const jwtCompany = useAuthStore.getState().jwtCompany;
 
@@ -223,22 +223,22 @@ export const getBookingDetails = async(bookingId: string) => {
 
 const addPlayerToDisplay = (player: Player): DisplayPlayers => {
     const newDisplayPlayer: DisplayPlayers = {
-      id: `${useGameStore.getState().displayPlayers.length}`, 
-      name: player.user 
-        ? `${player.user.firstName} ${player.user.lastName}` 
-        : "Unknown Player", 
-      isAdult: player.isAdult ?? null, 
-      isGuest: player.isGuest
+        id: `${useGameStore.getState().displayPlayers.length}`,
+        name: player.user
+            ? `${player.user.firstName} ${player.user.lastName}`
+            : "Unknown Player",
+        isAdult: player.isAdult ?? null,
+        isGuest: player.isGuest
     };
 
     return newDisplayPlayer
-  };
+};
 
-const getPlayerInfo = async(userId: string) => {
+const getPlayerInfo = async (userId: string) => {
     try {
         const adminToken = useGameStore.getState().adminJwt
 
-        if(adminToken == undefined){
+        if (adminToken == undefined) {
             console.log("Admin JWT undefined")
             return
         }
@@ -259,7 +259,7 @@ const getPlayerInfo = async(userId: string) => {
         console.log("Error getting user data from QR")
         console.log(error)
     }
-  }
+}
 
 export const validateBooking = async (token: string) => {
     const jwtCompany = useAuthStore.getState().jwtCompany;
@@ -310,7 +310,7 @@ export const validateBooking = async (token: string) => {
     }
 };
 
-export const validatePersonalQr = async(token: string) => {
+export const validatePersonalQr = async (token: string) => {
     try {
         const response = await fetch(`${BASE_URL}/api/user/me`, {
             method: 'GET',
@@ -342,3 +342,51 @@ export const validatePersonalQr = async(token: string) => {
     }
 };
 
+export const updateBookingState = async (bookingId: string, state: string) => {
+    const jwtCompany = useAuthStore.getState().jwtCompany;
+
+    if (!jwtCompany) {
+        console.error('JWT token not found. User is not authenticated.');
+        return { success: false, error: 'Unauthenticated' };
+    }
+
+    try {
+        const response = await fetch(`${BASE_URL}/api/booking/${bookingId}/state`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtCompany}`,
+            },
+            body: JSON.stringify({ state }),
+        });
+
+        const contentType = response.headers.get('Content-Type') || '';
+
+        let data: any = null;
+
+        if (contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            data = await response.text();
+        }
+
+        if (!response.ok) {
+            return {
+                success: false,
+                status: response.status,
+                error: data?.message || 'Server returned an error',
+                data,
+            };
+        }
+
+        return {
+            success: true,
+            data,
+        };
+    } catch (error: any) {
+        return {
+            success: false,
+            error: error.message || 'Unexpected error',
+        };
+    }
+};
