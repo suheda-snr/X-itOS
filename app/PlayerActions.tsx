@@ -487,6 +487,9 @@ const PlayerActions: React.FC = () => {
 
   const putItemsOnAltar = async() => {
     setLoading(true)
+
+    if(!isPreviousStepCompleted("wheels", 6)) return
+
     await updatePuzzleInFirebase("puzzle_8", "altar", { "pieces.piece_1.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_8", "altar", { "pieces.piece_2.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_8", "altar", { "pieces.piece_3.isInteracted": true });
@@ -510,6 +513,9 @@ const PlayerActions: React.FC = () => {
 
   const removeTablePegs = async() => {
     setLoading(true)
+
+    if(!isPreviousStepCompleted("altar", 7))
+
     await updatePuzzleInFirebase("puzzle_9", "pegs", { "pieces.piece_1.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_9", "pegs", { "pieces.piece_2.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_9", "pegs", { "pieces.piece_3.isInteracted": true });
@@ -530,6 +536,9 @@ const PlayerActions: React.FC = () => {
 
   const closeTWdoor = async() => {
     setLoading(true)
+
+    if(!isPreviousStepCompleted("pegs", 8)) return
+
     await updateSensorInFirebase("TW_door", { isActive: false });
 
     const doorSensor = sensorsRef.current.find(sensor => sensor.id === "TW_door")?.isActive;
@@ -548,6 +557,17 @@ const PlayerActions: React.FC = () => {
 
   const replaceSkull = async() => {
     setLoading(true)
+
+    const doorSensor = sensorsRef.current.find(sensor => sensor.id === "TW_door")?.isActive;
+    
+    if(doorSensor){
+      showAlertDialog({
+        title: "Warning!",
+        message: "You can not proceed to the next step of the game without completing the previous one!",
+      });
+      return
+    }
+
     await updatePuzzleInFirebase("puzzle_9", "middle_table", { "pieces.piece_1.isInteracted": false }); 
     await updatePuzzleInFirebase("puzzle_9", "middle_table", { "pieces.piece_2.isInteracted": true }); 
 
