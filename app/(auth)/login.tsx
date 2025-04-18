@@ -22,7 +22,9 @@ export default function LoginScreen() {
         const token = await login(email, password);
         if (token) {
           await getCompanyName();
-          router.replace('/PlayerActions');
+          //uncomment if u want to test player actions faster
+          // router.replace('/PlayerActions');
+          router.replace('/welcome');
         } else {
           console.log('Login failed, no token received.');
         }
