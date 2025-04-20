@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { View, StyleSheet, Animated, PanResponder, Pressable, Text, Button, Image } from "react-native";
+import { View, StyleSheet, Animated, PanResponder, Pressable, Text, Button, Image, Modal, ScrollView } from "react-native";
 import Svg, { Rect, Circle, Text as SvgText, Line } from "react-native-svg";
 import { Alert } from "react-native";
 import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
@@ -40,6 +40,13 @@ interface Sensor {
   isActive: boolean;
 }
 
+interface ChangeLogEntry {
+  timestamp: string;
+  type: 'puzzle' | 'sensor';
+  id: string;
+  changes: Record<string, any>;
+}
+
 const Map: React.FC = () => {
   const scale = useRef(new Animated.Value(1)).current;
   const translateX = useRef(new Animated.Value(0)).current;
@@ -50,6 +57,8 @@ const Map: React.FC = () => {
   const [sensors, setSensors] = useState<Sensor[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
   const timerRef = useRef<Array<NodeJS.Timeout | Function>>([]);
+  const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
+  const [isChangeLogVisible, setIsChangeLogVisible] = useState(false);
 
   useEffect(() => {
     puzzlesRef.current = puzzles;
@@ -57,6 +66,17 @@ const Map: React.FC = () => {
 
   useEffect(() => {
     const puzzlesUnsubscribe = onSnapshot(collection(db, "puzzles"), (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "modified") {
+          setChangeLog(prev => [...prev, {
+            timestamp: new Date().toISOString(),
+            type: 'puzzle',
+            id: change.doc.id,
+            changes: change.doc.data()
+          }]);
+        }
+      });
+
       const puzzlesData = snapshot.docs.map((docSnapshot) => {
         const puzzle: Puzzle = {
           id: docSnapshot.id,
@@ -116,6 +136,17 @@ const Map: React.FC = () => {
     });
 
     const sensorsUnsubscribe = onSnapshot(collection(db, "sensors"), (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "modified") {
+          setChangeLog(prev => [...prev, {
+            timestamp: new Date().toISOString(),
+            type: 'sensor',
+            id: change.doc.id,
+            changes: change.doc.data()
+          }]);
+        }
+      });
+
       const sensorsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...(doc.data() as Omit<Sensor, "id">),
@@ -174,23 +205,23 @@ const Map: React.FC = () => {
     setOpenItem(openItem === item ? null : item);
   };
 
-  const handleSensorPress = async (sensorId: string) => {
+  const handleSensorPress = async (sensorName: string) => {
     try {
-      const sensor = sensors.find((s) => s.id === sensorId);
+      const sensor = sensors.find((s) => s.id === sensorName);
       if (!sensor) {
         showAlertDialog({
           title: "Error",
-          message: `Sensor with ID ${sensorId} not found.`,
+          message: `Sensor with name ${sensorName} not found.`,
         });
         return;
       }
 
       const updatedStatus = !sensor.isActive;
-      await updateSensorInFirebase(sensorId, { isActive: updatedStatus });
+      await updateSensorInFirebase(sensorName, { isActive: updatedStatus });
 
       showAlertDialog({
         title: "Sensor Updated",
-        message: `The ${sensorId} sensor is now ${updatedStatus ? "Active" : "Inactive"}.`,
+        message: `The ${sensorName} sensor is now ${updatedStatus ? "Active" : "Inactive"}.`,
       });
     } catch (error) {
       console.error("Error updating sensor:", error);
@@ -199,6 +230,10 @@ const Map: React.FC = () => {
         message: "Failed to update the sensor. Please try again.",
       });
     }
+  };
+
+  const toggleChangeLog = () => {
+    setIsChangeLogVisible(!isChangeLogVisible);
   };
 
   const handleStart = () => {
@@ -226,9 +261,9 @@ const Map: React.FC = () => {
 
         if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
           updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_1", { isShared: true });
-          showAlertDialog({ title: "Hint 1", message: "Check the diary" });
+          showAlertDialog({ title: "Hint", message: "Hint 1 is shared for puzzle_1" });
         }
-      }, 20 * 1000) // 20 seconds
+      }, 20 * 1000)
     );
 
     timerRef.current.push(
@@ -239,7 +274,7 @@ const Map: React.FC = () => {
         console.log("Hint 2 - templeWallInteractedPiece2:", templeWallInteractedPiece2);
         if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
           updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_2", { isShared: true });
-          showAlertDialog({ title: "Hint 2", message: "Check the temple wall stones" });
+          showAlertDialog({ title: "Hint", message: "Hint 2 is shared for puzzle_1" });
         }
       }, 60 * 1000) // 1 minute
     );
@@ -268,8 +303,8 @@ const Map: React.FC = () => {
         if (!totemInteracted) {
           updatePuzzleInFirebase(puzzleId, "totem", {}, "hint_3", { isShared: true });
           showAlertDialog({
-            title: "Hint 3",
-            message: "Look for the signs in the room same as light signs",
+            title: "Hint",
+            message: "Hint 3 is shared for puzzle_1",
           });
         }
       }, 120 * 1000) // 2 minutes
@@ -306,8 +341,8 @@ const Map: React.FC = () => {
         if (!puzzleCompleted) {
           updatePuzzleInFirebase("puzzle_2", "piece_1", {}, "hint_1", { isShared: true });
           showAlertDialog({
-            title: "Hint 1",
-            message: "Check if all pieces on the table are in the correct place.",
+            title: "Hint",
+            message: "Hint is shared for puzzle_2",
           });
         }
       }, 180 * 1000)
@@ -342,14 +377,12 @@ const Map: React.FC = () => {
       setTimeout(() => {
         const wallButtons1 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_1?.isInteracted;
         const wallButtons2 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_2?.isInteracted;
-        const wallButtons3 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_3?.isInteracted;
         const wallButtons4 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_4?.isInteracted;
-        const wallButtons5 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_5?.isInteracted;
         const wallButtons6 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_6?.isInteracted;
 
         if (!wallButtons1 && !wallButtons2 && !wallButtons4 && !wallButtons6) {
           updatePuzzleInFirebase("puzzle_3", "wall_buttons", {}, "hint_1", { isShared: true });
-          showAlertDialog({ title: "Hint 1", message: "" });
+          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_3" });
         }
       }, 220 * 1000)
     );
@@ -358,12 +391,10 @@ const Map: React.FC = () => {
       setTimeout(() => {
         const wallButtons1 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_1?.isInteracted;
         const wallButtons2 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_2?.isInteracted;
-        const wallButtons3 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_3?.isInteracted;
         const wallButtons4 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_4?.isInteracted;
-        const wallButtons5 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_5?.isInteracted;
         const wallButtons6 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_6?.isInteracted;
 
-        if (!wallButtons1 && !wallButtons2 && !wallButtons3 && !wallButtons4 && !wallButtons5 && !wallButtons6) {
+        if (!wallButtons1 && !wallButtons2 && !wallButtons4 && !wallButtons6) {
           updateSensorInFirebase("locker_under_weights", { isActive: true });
           updatePuzzleInFirebase("puzzle_4", "gears", { "actions.isActivated": true });
           showAlertDialog({
@@ -373,6 +404,223 @@ const Map: React.FC = () => {
         }
       }, 250 * 1000)
     );
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const gearsPieces = puzzlesRef.current[3]?.stages?.gears?.pieces?.gears?.isInteracted;
+
+        console.log("Hint 1 - gearsPieces:", gearsPieces);
+        if (!gearsPieces) {
+          updatePuzzleInFirebase("puzzle_4", "gears", {}, "hint_1", { isShared: true });
+          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_4" });
+        }
+      }, 270 * 1000)
+    );
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const gearsPieces = puzzlesRef.current[3]?.stages?.gears?.pieces?.gears?.isInteracted;
+
+        if (!gearsPieces) {
+          updatePuzzleInFirebase("puzzle_4", "crank_rotation", { "actions.isActivated": true });
+          updateSensorInFirebase("sliding_door", { isActive: false });
+          showAlertDialog({
+            title: "Automation",
+            message: "Sliding door closed and crank rotation activated due to inactivity.",
+          });
+        }
+      }, 280 * 1000)
+    );
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const cranckRotation = puzzlesRef.current[3]?.stages?.crank_rotation?.pieces?.crank?.isInteracted;
+
+        if (!cranckRotation) {
+          updatePuzzleInFirebase("puzzle_5", "insert_ball", { "actions.isActivated": true });
+          updateSensorInFirebase("ball_locker", { isActive: true });
+          showAlertDialog({
+            title: "Automation",
+            message: "Ball locker sensor activated and insert ball stage activated due to inactivity.",
+          });
+        }
+      }, 290 * 1000)
+    );
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const ballInsert = puzzlesRef.current[4]?.stages?.insert_ball?.pieces?.ball?.isInteracted;
+
+        if (!ballInsert) {
+          updatePuzzleInFirebase("puzzle_5", "crank_rotation_to_get_balls", { "actions.isActivated": true });
+          updateSensorInFirebase("crank_hole", { isActive: true });
+          showAlertDialog({
+            title: "Automation",
+            message: "Crank hole sensor activated and crank rotation to get balls stage activated due to inactivity.",
+          });
+        }
+      }, 310 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const gettingBalls = puzzlesRef.current[4]?.stages?.crank_rotation_to_get_balls?.pieces?.ball?.isInteracted;
+
+        if (!gettingBalls) {
+          updatePuzzleInFirebase("puzzle_6", "weight", { "actions.isActivated": true });
+          updateSensorInFirebase("balls_releasing_mechanism", { isActive: true });
+          showAlertDialog({
+            title: "Automation",
+            message: "Balls are released and next step is activated"
+          });
+        }
+      }, 320 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const ball1 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_1?.isInteracted;
+        const ball2 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_2?.isInteracted;
+        const ball3 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_3?.isInteracted;
+
+        if (!ball1 && !ball2 && !ball3) {
+          updatePuzzleInFirebase("puzzle_6", "weight", {}, "hint_1", { isShared: true });
+          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_6" });
+        }
+      }
+        , 340 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const ball1 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_1?.isInteracted;
+        const ball2 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_2?.isInteracted;
+        const ball3 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_3?.isInteracted;
+
+        if (!ball1 && !ball2 && !ball3) {
+          updatePuzzleInFirebase("puzzle_7", "wheels", { "actions.isActivated": true });
+          showAlertDialog({
+            title: "Automation",
+            message: "Wheels stage activated due to inactivity.",
+          });
+        }
+      }, 360 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const wheel1 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
+        const wheel2 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
+        const wheel3 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_3?.isInteracted;
+
+        if (!wheel1 && !wheel2 && !wheel3) {
+          updatePuzzleInFirebase("puzzle_7", "wheels", {}, "hint_1", { isShared: true });
+          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_7" });
+        }
+      }
+        , 380 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const wheel1 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
+        const wheel2 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
+        const wheel3 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_3?.isInteracted;
+
+        if (!wheel1 && !wheel2 && !wheel3) {
+          updateSensorInFirebase("dog_locker", { isActive: true });
+          updatePuzzleInFirebase("puzzle_8", "altar", { "actions.isActivated": true });
+          showAlertDialog({
+            title: "Automation",
+            message: "Altar stage is activated and dog locker is opened.",
+          });
+        }
+      }
+        , 400 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const object1 = puzzlesRef.current[7]?.stages?.altar?.pieces?.piece_1?.isInteracted;
+        const object2 = puzzlesRef.current[7]?.stages?.altar?.pieces?.piece_2?.isInteracted;
+        const object3 = puzzlesRef.current[7]?.stages?.altar?.pieces?.piece_3?.isInteracted;
+
+        if (!object1 && !object2 && !object3) {
+          updatePuzzleInFirebase("puzzle_8", "altar", {}, "hint_1", { isShared: true });
+          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_8" });
+        }
+      }
+        , 410 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const object1 = puzzlesRef.current[7]?.stages?.altar?.pieces?.piece_1?.isInteracted;
+        const object2 = puzzlesRef.current[7]?.stages?.altar?.pieces?.piece_2?.isInteracted;
+        const object3 = puzzlesRef.current[7]?.stages?.altar?.pieces?.piece_3?.isInteracted;
+
+        if (!object1 && !object2 && !object3) {
+          updateSensorInFirebase("table_lock", { isActive: true });
+          updatePuzzleInFirebase("puzzle_9", "pegs", { "actions.isActivated": true });
+          showAlertDialog({
+            title: "Automation",
+            message: " Pegs stage is activated and table lock is opened",
+          });
+        }
+      }
+        , 420 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const piece1 = puzzlesRef.current[7]?.stages?.pegs?.pieces?.piece_1?.isInteracted;
+        const piece2 = puzzlesRef.current[7]?.stages?.pegs?.pieces?.piece_2?.isInteracted;
+        const piece3 = puzzlesRef.current[7]?.stages?.pegs?.pieces?.piece_3?.isInteracted;
+
+        if (!piece1 && !piece2 && !piece3) {
+          updatePuzzleInFirebase("puzzle_9", "pegs", {}, "hint_1", { isShared: true });
+          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_9" });
+        }
+      }
+        , 430 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const piece1 = puzzlesRef.current[7]?.stages?.pegs?.pieces?.piece_1?.isInteracted;
+        const piece2 = puzzlesRef.current[7]?.stages?.pegs?.pieces?.piece_2?.isInteracted;
+        const piece3 = puzzlesRef.current[7]?.stages?.pegs?.pieces?.piece_3?.isInteracted;
+
+        if (!piece1 && !piece2 && !piece3) {
+          updateSensorInFirebase("table_lock", { isActive: true });
+          updatePuzzleInFirebase("puzzle_9", "middle_table", { "actions.isActivated": true });
+          showAlertDialog({
+            title: "Automation",
+            message: " Middle table stage is activated and table lock is opened due to inactivity.",
+          });
+        }
+      }
+        , 440 * 1000)
+    )
+
+    timerRef.current.push(
+      setTimeout(() => {
+        const skull = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
+        const replacement_piece = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
+
+        if (!skull && !replacement_piece) {
+          updateSensorInFirebase("intable_sensor", { isActive: true });
+          updatePuzzleInFirebase("puzzle_9", "middle_table", { "actions.isActivated": true });
+          showAlertDialog({
+            title: "Automation",
+            message: " Middle table stage is activated and table lock is opened due to inactivity.",
+          });
+        }
+      }
+        , 450 * 1000)
+    )
+
+
   }
 
   const panResponder = useRef(
@@ -396,7 +644,42 @@ const Map: React.FC = () => {
     <View style={styles.outerContainer}>
       <View style={styles.startButtonContainer}>
         <Button title="Start" onPress={handleStart} disabled={gameStarted} />
+        <Button
+          title="Show Changes"
+          onPress={toggleChangeLog}
+          color="#007AFF"
+        />
       </View>
+
+      <Modal
+        visible={isChangeLogVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={toggleChangeLog}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Change Log</Text>
+            <ScrollView style={styles.changeLogContainer}>
+              {changeLog.length === 0 ? (
+                <Text>No changes recorded yet</Text>
+              ) : (
+                changeLog.map((entry, index) => (
+                  <View key={index} style={styles.changeEntry}>
+                    <Text style={styles.changeTimestamp}>
+                      {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </Text>
+                    <Text>Type: {entry.type}</Text>
+                    <Text>ID: {entry.id}</Text>
+                    <Text>Changes: {JSON.stringify(entry.changes, null, 2)}</Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+            <Button title="Close" onPress={toggleChangeLog} />
+          </View>
+        </View>
+      </Modal>
 
       <View style={styles.inventoryContainer}>
         <Text style={styles.inventoryTitle}>Inventory</Text>
@@ -658,6 +941,38 @@ const styles = StyleSheet.create({
   sensorText: {
     fontSize: 16,
     color: "#333",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  changeLogContainer: {
+    maxHeight: '80%',
+    marginBottom: 10,
+  },
+  changeEntry: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  changeTimestamp: {
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
 });
 
