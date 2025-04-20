@@ -6,7 +6,7 @@ export interface GameState {
     gameData: Game | null;
     playersData: Player[] | null
     isGameSet: boolean;
-    displayPlayers: DisplayPlayers[] 
+    displayPlayers: DisplayPlayers[]
     bookingDetails: Booking | null
     adminJwt: string | null
     setGameData: (gameData: Game) => void;
@@ -15,6 +15,6 @@ export interface GameState {
     updateGameData: (updatedFields: Partial<Game>) => void;
     setPlayersData: (player: Player) => void
     setDisplayPlayers: (player: DisplayPlayers) => void
-    setBookingDetails: (booking: Booking) => void
+    setBookingDetails: (booking: Booking | null) => void
     setAdminJwt: (adminJwt: string) => void
 }

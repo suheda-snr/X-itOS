@@ -390,3 +390,167 @@ export const updateBookingState = async (bookingId: string, state: string) => {
         };
     }
 };
+
+export const fetchBookingsByCompanyId = async (companyId: string, roomId: string): Promise<Booking[]> => {
+    try {
+        const jwtCompany = useAuthStore.getState().jwtCompany;
+
+        if (!jwtCompany) {
+            console.error('JWT token not found. User is not authenticated.');
+            throw new Error('Unauthenticated');
+        }
+
+        const response = await fetch(`${BASE_URL}/api/booking/company/${companyId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtCompany}`,
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.log('API Error:', errorData);
+            throw new Error('Failed to fetch bookings');
+        }
+
+        const bookings: Booking[] = await response.json();
+        console.log('Fetched Bookings:', bookings);
+
+        // Filter bookings for IN_PROGRESS and matching roomId
+        const filteredBookings = bookings.filter(
+            (booking) => booking.state === 'IN_PROGRESS' && booking.room.id === roomId,
+        );
+        console.log('Filtered Bookings:', filteredBookings);
+        return filteredBookings;
+    } catch (error) {
+        console.log('Error fetching bookings:', error);
+        throw error;
+    }
+};
+
+export const fetchGames = async (bookingId: string): Promise<Game | null> => {
+    try {
+        const jwtCompany = useAuthStore.getState().jwtCompany;
+
+        if (!jwtCompany) {
+            console.log('JWT token not found. User is not authenticated.');
+            throw new Error('Unauthenticated');
+        }
+
+        const response = await fetch(`${BASE_URL}/api/game`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtCompany}`,
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.log('API Error:', errorData);
+            throw new Error('Failed to fetch games');
+        }
+
+        const games: Game[] = await response.json();
+        console.log('Fetched Games:', games);
+
+        // Filter games for matching bookingId
+        const filteredGames = games.filter((game) => game.bookingId === bookingId);
+        console.log('Filtered Games:', filteredGames);
+
+        // Return the most recent game based on createdAt, or null if none
+        if (filteredGames.length === 0) {
+            console.log(`No games found for bookingId: ${bookingId}`);
+            return null;
+        }
+
+        const latestGame = filteredGames.reduce((latest, game) => {
+            return !latest || new Date(game.createdAt) > new Date(latest.createdAt) ? game : latest;
+        }, filteredGames[0]);
+        console.log('Latest Game:', latestGame);
+
+        return latestGame;
+    } catch (error) {
+        console.log('Error fetching games:', error);
+        throw error;
+    }
+};
+
+export const startGameAndBooking = async (companyId: string, roomId: string): Promise<Game> => {
+    try {
+        const jwtCompany = useAuthStore.getState().jwtCompany;
+
+        if (!jwtCompany) {
+            console.log('JWT token not found. User is not authenticated.');
+            throw new Error('Unauthenticated');
+        }
+
+        // Fetch bookings for the company and room
+        const bookings = await fetchBookingsByCompanyId(companyId, roomId);
+        if (bookings.length === 0) {
+            console.log('No IN_PROGRESS bookings found for room:', roomId);
+            throw new Error('No active booking found for this room');
+        }
+
+        // Use the first IN_PROGRESS booking
+        const booking = bookings[0];
+
+        // Fetch the latest game for the booking
+        const game = await fetchGames(booking.id);
+        if (!game) {
+            console.log(`No game found for bookingId: ${booking.id}`);
+            throw new Error('No game found for this booking');
+        }
+
+        // Update game startTime, include roomId in the payload
+        const payload = {
+            startTime: new Date().toISOString(),
+            roomId: roomId
+        };
+
+        const gameResponse = await fetch(`${BASE_URL}/api/game/${game.id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtCompany}`,
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!gameResponse.ok) {
+            const errorData = await gameResponse.json();
+            console.log('API Error:', errorData);
+            throw new Error('Failed to update game start time');
+        }
+
+        const updatedGame: Game = await gameResponse.json();
+        console.log('Started Game:', updatedGame);
+
+        // Update booking state to DONE
+        const stateResponse = await fetch(`${BASE_URL}/api/booking/${booking.id}/state`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtCompany}`,
+            },
+            body: JSON.stringify({ state: 'DONE' }),
+        });
+
+        if (!stateResponse.ok) {
+            const errorData = await stateResponse.json();
+            console.log('API Error:', errorData);
+            throw new Error('Failed to update booking state to DONE');
+        }
+
+        // Update store
+        useGameStore.getState().setGameData(updatedGame);
+        useGameStore.getState().setIsGameSet(true);
+        useGameStore.getState().setBookingDetails({ ...booking, state: 'DONE' });
+
+        return updatedGame;
+    } catch (error) {
+        console.log('Error updating game and booking:', error);
+        throw error;
+    }
+};
