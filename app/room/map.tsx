@@ -398,60 +398,60 @@ const Map: React.FC = () => {
       // source={{ uri: 'https://as2.ftcdn.net/v2/jpg/00/10/01/27/1000_F_1000127921_RhVXYEqBPtL1o2gy4F7SHdXp6MOrn7Zw.jpg' }}
       style={styles.container}
     >
-    
-    <View style={styles.outerContainer}>
-      <View style={styles.startButtonContainer}>
-        <Button title="Start" color='gray'  onPress={handleStart} disabled={gameStarted} />
-      </View>
 
-      <View style={styles.inventoryContainer}>
-        <Text style={styles.inventoryTitle}>Puzzles</Text>
-
-        {/* <View style={styles.fadeOverlay} /> */}
-
-        <View style={styles.itemList}>
-          {puzzles.map((puzzle, index) =>
-            puzzle.stages &&
-            Object.keys(puzzle.stages).map((stageKey, stageIndex) => (
-              <View key={`${index}-${stageIndex}`} style={styles.itemContainer}>
-                <Pressable onPress={() => toggleItem(`p${index + 1}.${stageIndex + 1}`)}>
-                  <Text style={styles.itemText}>
-                    p.{index + 1}.{stageIndex + 1}.{" "}
-                    {openItem === `p${index + 1}.${stageIndex + 1}` ? "▼" : "▶"}
-                  </Text>
-                </Pressable>
-                {openItem === `p${index + 1}.${stageIndex + 1}` && (
-                  <View>
-                    <Text style={styles.itemDetails}>
-                      Details: {puzzle.stages[stageKey].pieces?.piece_1?.type || "No type"} - Interacted:{" "}
-                      {puzzle.stages[stageKey].pieces?.piece_1?.isInteracted ? "Yes" : "No"}
-                    </Text>
-                    <Image
-                      source={{ uri: puzzle.stages[stageKey].image_url }}
-                      style={{ width: 100, height: 100, marginTop: 5 }}
-                    />
-                  </View>
-                )}
-              </View>
-            ))
-          )}
+      <View style={styles.outerContainer}>
+        <View style={styles.startButtonContainer}>
+          <Button title="Start" color='gray' onPress={handleStart} disabled={gameStarted} />
         </View>
-      </View>
 
-      <View style={styles.container} {...panResponder.panHandlers}>
-        <Animated.View style={{ transform: [{ scale }, { translateX }, { translateY }] }}>
-          <Svg width={500} height={500} viewBox="0 0 500 500">
-            <Rect x={0} y={0} width={500} height={500} fill="none" stroke="gray" strokeWidth={1} />
-            <Line x1={0} y1={400} x2={0} y2={470} stroke="brown" strokeWidth={5} />
-            <Line x1={0} y1={350} x2={500} y2={350} stroke="black" strokeWidth={8} />
-            <Rect x={500} y={100} width={-30} height={200} fill="transparent" stroke="black" strokeWidth={1} />
+        <View style={styles.inventoryContainer}>
+          <Text style={styles.inventoryTitle}>Puzzles</Text>
 
-            {puzzles.length > 0 && puzzles[0].stages && (
-              <>
-                {puzzles[0].stages["temple_wall"] && (
-                  <>
-                    <Rect x={40} y={350} width={150} height={30} fill="transparent" stroke="black" strokeWidth={1} />
-                    {/* <Circle
+          {/* <View style={styles.fadeOverlay} /> */}
+
+          <View style={styles.itemList}>
+            {puzzles.map((puzzle, index) =>
+              puzzle.stages &&
+              Object.keys(puzzle.stages).map((stageKey, stageIndex) => (
+                <View key={`${index}-${stageIndex}`} style={styles.itemContainer}>
+                  <Pressable onPress={() => toggleItem(`p${index + 1}.${stageIndex + 1}`)}>
+                    <Text style={styles.itemText}>
+                      p.{index + 1}.{stageIndex + 1}.{" "}
+                      {openItem === `p${index + 1}.${stageIndex + 1}` ? "▼" : "▶"}
+                    </Text>
+                  </Pressable>
+                  {openItem === `p${index + 1}.${stageIndex + 1}` && (
+                    <View>
+                      <Text style={styles.itemDetails}>
+                        Details: {puzzle.stages[stageKey].pieces?.piece_1?.type || "No type"} - Interacted:{" "}
+                        {puzzle.stages[stageKey].pieces?.piece_1?.isInteracted ? "Yes" : "No"}
+                      </Text>
+                      <Image
+                        source={{ uri: puzzle.stages[stageKey].image_url }}
+                        style={{ width: 100, height: 100, marginTop: 5 }}
+                      />
+                    </View>
+                  )}
+                </View>
+              ))
+            )}
+          </View>
+        </View>
+
+        <View style={styles.container} {...panResponder.panHandlers}>
+          <Animated.View style={{ transform: [{ scale }, { translateX }, { translateY }] }}>
+            <Svg width={500} height={500} viewBox="0 0 500 500">
+              <Rect x={0} y={0} width={500} height={500} fill="none" stroke="gray" strokeWidth={1} />
+              <Line x1={0} y1={400} x2={0} y2={470} stroke="brown" strokeWidth={5} />
+              <Line x1={0} y1={350} x2={500} y2={350} stroke="black" strokeWidth={8} />
+              <Rect x={500} y={100} width={-30} height={200} fill="transparent" stroke="black" strokeWidth={1} />
+
+              {puzzles.length > 0 && puzzles[0].stages && (
+                <>
+                  {puzzles[0].stages["temple_wall"] && (
+                    <>
+                      <Rect x={40} y={350} width={150} height={30} fill="transparent" stroke="black" strokeWidth={1} />
+                      {/* <Circle
                       cx={80}
                       cy={365}
                       r={12}
@@ -461,20 +461,20 @@ const Map: React.FC = () => {
                     />
                     <SvgText x={72} y={369} fontSize={10} fill="black">P.1.1</SvgText> */}
 
-                    <Circle
-                      cx={120}
-                      cy={365}
-                      r={12}
-                      fill={
-                        sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "green" : "transparent"
-                      }
-                      stroke="black"
-                      strokeWidth={1}
-                    />
-                    <SvgText x={113} y={369} fontSize={12}>S.1.</SvgText>
+                      <Circle
+                        cx={120}
+                        cy={365}
+                        r={12}
+                        fill={
+                          sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "green" : "transparent"
+                        }
+                        stroke="black"
+                        strokeWidth={1}
+                      />
+                      <SvgText x={113} y={369} fontSize={12}>S.1.</SvgText>
 
-                    <Rect x={380} y={350} width={100} height={30} fill="transparent" stroke="black" strokeWidth={1} />
-                    {/* <Circle
+                      <Rect x={380} y={350} width={100} height={30} fill="transparent" stroke="black" strokeWidth={1} />
+                      {/* <Circle
                       cx={410}
                       cy={365}
                       r={12}
@@ -484,215 +484,215 @@ const Map: React.FC = () => {
                     />
                     <SvgText x={400} y={369} fontSize={10} fill="black">P.1.1</SvgText> */}
 
-                    <Circle
-                      cx={450}
-                      cy={365}
-                      r={12}
-                      fill={
-                        sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "green" : "transparent"
-                      }
-                      stroke="black"
-                      strokeWidth={1}
-                    />
-                    <SvgText x={441} y={369} fontSize={12}>S.1.</SvgText>
-                  </>
-                )}
+                      <Circle
+                        cx={450}
+                        cy={365}
+                        r={12}
+                        fill={
+                          sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "green" : "transparent"
+                        }
+                        stroke="black"
+                        strokeWidth={1}
+                      />
+                      <SvgText x={441} y={369} fontSize={12}>S.1.</SvgText>
+                    </>
+                  )}
 
-                {puzzles[0].stages["totem"] && (
-                  <>
-                    <Circle
-                      cx={440}
-                      cy={440}
-                      r={30}
-                      fill={puzzles[0].stages["totem"].pieces?.piece_1?.isInteracted ? "green" : "transparent"}
-                      stroke="black"
-                      strokeWidth={1}
-                    />
-                    {/* <SvgText x={425} y={448} fontSize={14} fill="black">P.1.2.</SvgText> */}
+                  {puzzles[0].stages["totem"] && (
+                    <>
+                      <Circle
+                        cx={440}
+                        cy={440}
+                        r={30}
+                        fill={puzzles[0].stages["totem"].pieces?.piece_1?.isInteracted ? "green" : "transparent"}
+                        stroke="black"
+                        strokeWidth={1}
+                      />
+                      {/* <SvgText x={425} y={448} fontSize={14} fill="black">P.1.2.</SvgText> */}
 
-                    <Line
-                      x1={250}
-                      y1={350}
-                      x2={340}
-                      y2={350}
-                      stroke={sensors.find((s) => s.id === "TW_door")?.isActive ? "yellow" : "pink"}
-                      strokeWidth={5}
-                    />
-                    <SvgText x={310} y={365} fontSize={12}>S.2.</SvgText>
-                  </>
-                )}
+                      <Line
+                        x1={250}
+                        y1={350}
+                        x2={340}
+                        y2={350}
+                        stroke={sensors.find((s) => s.id === "TW_door")?.isActive ? "yellow" : "pink"}
+                        strokeWidth={5}
+                      />
+                      <SvgText x={310} y={365} fontSize={12}>S.2.</SvgText>
+                    </>
+                  )}
 
-                {puzzles[1].stages["piece_1"] && (
-                  <>
-                    {/* <Rect x={70} y={465} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "transparent"} stroke="black" strokeWidth={1} />
+                  {puzzles[1].stages["piece_1"] && (
+                    <>
+                      {/* <Rect x={70} y={465} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "transparent"} stroke="black" strokeWidth={1} />
                     <SvgText x={75} y={479} fontSize={10} fill="black">P.2.1</SvgText> */}
-                    {/* <Rect x={470} y={270} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "transparent"} stroke="black" strokeWidth={1} />
+                      {/* <Rect x={470} y={270} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "transparent"} stroke="black" strokeWidth={1} />
                     <SvgText x={475} y={284} fontSize={10} fill="black">P.2.2</SvgText> */}
-                    {/* <Rect x={280} y={95} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "transparent"} stroke="black" strokeWidth={1} />
+                      {/* <Rect x={280} y={95} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "transparent"} stroke="black" strokeWidth={1} />
                     <SvgText x={285} y={109} fontSize={10} fill="black">P.2.3</SvgText> */}
-                  </>
-                )}
+                    </>
+                  )}
 
-                {puzzles[2].stages["wall_buttons"] && (
-                  <>
-                    <Rect x={5} y={160} width={25} height={140} fill="transparent" stroke="black" strokeWidth={1} />
-                    {["button_6", "button_5", "button_4", "button_3", "button_2", "button_1"].map((button, index) => {
-                      const cx = 17;
-                      const cy = 180 + index * 20;
-                      return (
-                        <React.Fragment key={button}>
-                          <Circle
-                            cx={cx}
-                            cy={cy}
-                            r={8}
-                            fill={puzzles[2].stages["wall_buttons"].pieces?.[button]?.isInteracted ? "green" : "transparent"}
-                            stroke="black"
-                            strokeWidth={1}
-                          />
-                          <SvgText x={cx - 2} y={(cy ?? 0) + 4} fontSize={8} fill="black">
-                            {6 - index}
-                          </SvgText>
-                        </React.Fragment>
-                      );
-                    })}
-                    <Rect x={380} y={316} width={100} height={30} fill="transparent" stroke="black" strokeWidth={1} />
-                    <Rect x={380} y={315} width={100} height={8} fill={sensors.find((s) => s.id === "7" && s.isActive) ? "yellow" : "pink"} stroke="black" strokeWidth={1} />
-                    <SvgText x={420} y={324} fontSize={12}>S.7.</SvgText>
-                  </>
-                  
-                )}
-              </>
-            )}
+                  {puzzles[2].stages["wall_buttons"] && (
+                    <>
+                      <Rect x={5} y={160} width={25} height={140} fill="transparent" stroke="black" strokeWidth={1} />
+                      {["button_6", "button_5", "button_4", "button_3", "button_2", "button_1"].map((button, index) => {
+                        const cx = 17;
+                        const cy = 180 + index * 20;
+                        return (
+                          <React.Fragment key={button}>
+                            <Circle
+                              cx={cx}
+                              cy={cy}
+                              r={8}
+                              fill={puzzles[2].stages["wall_buttons"].pieces?.[button]?.isInteracted ? "green" : "transparent"}
+                              stroke="black"
+                              strokeWidth={1}
+                            />
+                            <SvgText x={cx - 2} y={(cy ?? 0) + 4} fontSize={8} fill="black">
+                              {6 - index}
+                            </SvgText>
+                          </React.Fragment>
+                        );
+                      })}
+                      <Rect x={380} y={316} width={100} height={30} fill="transparent" stroke="black" strokeWidth={1} />
+                      <Rect x={380} y={315} width={100} height={8} fill={sensors.find((s) => s.id === "7" && s.isActive) ? "yellow" : "pink"} stroke="black" strokeWidth={1} />
+                      <SvgText x={420} y={324} fontSize={12}>S.7.</SvgText>
+                    </>
 
-
-          {/* Triangles above table with labels and color change based on puzzle completion */}
-{["Left", "Center", "Right"].map((label, index) => {
-  const cx = 10; // X-coordinate for all triangles (you can adjust this as needed)
-  let cy;
-  const puzzleState = puzzles[2]?.stages["wall_buttons"].pieces?.[`button_${index + 1}`]?.isInteracted;
-
-  // Adjust Y based on which triangle (Left, Center, Right)
-  if (label === "Left") {
-    cy = 105;
-  } else if (label === "Center") {
-    cy = 90;
-  } else if (label === "Right") {
-    cy = 75;
-  }
-
-  return (
-    <React.Fragment key={label}>
-      {/* Triangle */}
-      <Polygon
-        points={`${cx},${cy ?? 0} ${cx - 9},${(cy ?? 0) - 5} ${cx - 9},${(cy ?? 0) + 5}`} // Triangular shape
-        fill={puzzleState ? "green" : "lightgray"} // Change color based on puzzle completion
-        stroke="black"
-        strokeWidth={1}
-      />
-      
-      {/* Label */}
-      <SvgText x={cx - 2} y={(cy ?? 0) + 4} fontSize={8} fill="black">
-        {label[0]} {/* Use the first letter for the label (Left = L, Center = C, etc.) */}
-      </SvgText>
-    </React.Fragment>
-  );
-})}
+                  )}
+                </>
+              )}
 
 
-            
+              {/* Triangles above table with labels and color change based on puzzle completion */}
+              {["Left", "Center", "Right"].map((label, index) => {
+                const cx = 10; // X-coordinate for all triangles (you can adjust this as needed)
+                let cy;
+                const puzzleState = puzzles[2]?.stages["wall_buttons"].pieces?.[`button_${index + 1}`]?.isInteracted;
 
-          {/* Rectangle above table - First Set */}
-<Rect
-  x={230}
-  y={1} 
-  width={250}
-  height={20}
-  fill="transparent"
-  stroke="black"
-  strokeWidth={1}
-/>
+                // Adjust Y based on which triangle (Left, Center, Right)
+                if (label === "Left") {
+                  cy = 105;
+                } else if (label === "Center") {
+                  cy = 90;
+                } else if (label === "Right") {
+                  cy = 75;
+                }
 
-{/* Sensor bar inside the above rectangle - First Set */}
-<Rect
-  x={230}
-  y={21} // Adjusted to start below the rectangle
-  width={250}
-  height={8}
-  fill={sensors.find((s) => s.id === "10" && s.isActive) ? "yellow" : "pink"}
-  stroke="black"
-  strokeWidth={1}
-/>
-<SvgText x={350} y={29} fontSize={12}>S.10.</SvgText>
+                return (
+                  <React.Fragment key={label}>
+                    {/* Triangle */}
+                    <Polygon
+                      points={`${cx},${cy ?? 0} ${cx - 9},${(cy ?? 0) - 5} ${cx - 9},${(cy ?? 0) + 5}`} // Triangular shape
+                      fill={puzzleState ? "green" : "lightgray"} // Change color based on puzzle completion
+                      stroke="black"
+                      strokeWidth={1}
+                    />
 
-{/* Spacer to move the second set lower */}
-<Rect
-  x={20}
-  y={1}  // Adjusted to add space before the next set
-  width={130}
-  height={20}
-  fill="transparent"
-  stroke="black"
-  strokeWidth={1}
-/>
-
-{/* Sensor bar inside the above rectangle - Second Set */}
-<Rect
-  x={20}
-  y={20}  // Adjusted to align with the second rectangle
-  width={130}
-  height={8}
-  fill={sensors.find((s) => s.id === "9" && s.isActive) ? "yellow" : "pink"}
-  stroke="black"
-  strokeWidth={1}
-/>
-<SvgText x={75} y={29} fontSize={12}>S.9.</SvgText>
+                    {/* Label */}
+                    <SvgText x={cx - 2} y={(cy ?? 0) + 4} fontSize={8} fill="black">
+                      {label[0]} {/* Use the first letter for the label (Left = L, Center = C, etc.) */}
+                    </SvgText>
+                  </React.Fragment>
+                );
+              })}
 
 
-{/* Spacer to move the second set lower */}
-<Rect
-  x={20}
-  y={326}  // Adjusted to add space before the next set
-  width={130}
-  height={20}
-  fill="transparent"
-  stroke="black"
-  strokeWidth={1}
-/>
 
-{/* Sensor bar inside the above rectangle - Second Set */}
-<Rect
-  x={20}
-  y={326}  // Adjusted to align with the second rectangle
-  width={130}
-  height={8}
-  fill={sensors.find((s) => s.id === "8" && s.isActive) ? "yellow" : "pink"}
-  stroke="black"
-  strokeWidth={1}
-/>
-<SvgText x={70} y={335} fontSize={12}>S.8.</SvgText>
 
-            
-          
-            {/* <Rect x={295} y={415} width={40} height={30} fill="transparent" stroke="black" strokeWidth={1} rotation={10} originX={315} originY={425} />
+              {/* Rectangle above table - First Set */}
+              <Rect
+                x={230}
+                y={1}
+                width={250}
+                height={20}
+                fill="transparent"
+                stroke="black"
+                strokeWidth={1}
+              />
+
+              {/* Sensor bar inside the above rectangle - First Set */}
+              <Rect
+                x={230}
+                y={21} // Adjusted to start below the rectangle
+                width={250}
+                height={8}
+                fill={sensors.find((s) => s.id === "10" && s.isActive) ? "yellow" : "pink"}
+                stroke="black"
+                strokeWidth={1}
+              />
+              <SvgText x={350} y={29} fontSize={12}>S.10.</SvgText>
+
+              {/* Spacer to move the second set lower */}
+              <Rect
+                x={20}
+                y={1}  // Adjusted to add space before the next set
+                width={130}
+                height={20}
+                fill="transparent"
+                stroke="black"
+                strokeWidth={1}
+              />
+
+              {/* Sensor bar inside the above rectangle - Second Set */}
+              <Rect
+                x={20}
+                y={20}  // Adjusted to align with the second rectangle
+                width={130}
+                height={8}
+                fill={sensors.find((s) => s.id === "9" && s.isActive) ? "yellow" : "pink"}
+                stroke="black"
+                strokeWidth={1}
+              />
+              <SvgText x={75} y={29} fontSize={12}>S.9.</SvgText>
+
+
+              {/* Spacer to move the second set lower */}
+              <Rect
+                x={20}
+                y={326}  // Adjusted to add space before the next set
+                width={130}
+                height={20}
+                fill="transparent"
+                stroke="black"
+                strokeWidth={1}
+              />
+
+              {/* Sensor bar inside the above rectangle - Second Set */}
+              <Rect
+                x={20}
+                y={326}  // Adjusted to align with the second rectangle
+                width={130}
+                height={8}
+                fill={sensors.find((s) => s.id === "8" && s.isActive) ? "yellow" : "pink"}
+                stroke="black"
+                strokeWidth={1}
+              />
+              <SvgText x={70} y={335} fontSize={12}>S.8.</SvgText>
+
+
+
+              {/* <Rect x={295} y={415} width={40} height={30} fill="transparent" stroke="black" strokeWidth={1} rotation={10} originX={315} originY={425} />
             <SvgText x={300} y={435} fontSize={12}>Diary</SvgText> */}
-            <Rect x={160} y={120} width={180} height={100} fill="transparent" stroke="black" strokeWidth={1} />
-            <SvgText x={235} y={180} fontSize={12}>Table</SvgText>
-            {/* <Rect x={233} y={160} width={40} height={20} fill="transparent" stroke="black" strokeWidth={1} />
+              <Rect x={160} y={120} width={180} height={100} fill="transparent" stroke="black" strokeWidth={1} />
+              <SvgText x={235} y={180} fontSize={12}>Table</SvgText>
+              {/* <Rect x={233} y={160} width={40} height={20} fill="transparent" stroke="black" strokeWidth={1} />
             <SvgText x={245} y={175} fontSize={10} fill="black">R.P</SvgText> */}
 
-            <Circle cx={485} cy={150} r={14} fill="transparent" stroke="black" strokeWidth={1} />
-            <SvgText x={482} y={155} fontSize={10} fill="black">S</SvgText>
-            <Circle cx={485} cy={190} r={14} fill="transparent" stroke="black" strokeWidth={1} />
-            <SvgText x={482} y={195} fontSize={10} fill="black">D</SvgText>
-            <Circle cx={485} cy={230} r={14} fill="transparent" stroke="black" strokeWidth={1} />
-            <SvgText x={482} y={235} fontSize={10} fill="black">H</SvgText>
-            <Rect x={500} y={50} width={-20} height={50} fill="transparent" stroke="black" strokeWidth={1} />
-          </Svg>
-        </Animated.View>
-      </View>
-      <Rect x={160} y={120} width={180} height={400} fill="transparent" stroke="black" strokeWidth={1} />
+              <Circle cx={485} cy={150} r={14} fill="transparent" stroke="black" strokeWidth={1} />
+              <SvgText x={482} y={155} fontSize={10} fill="black">S</SvgText>
+              <Circle cx={485} cy={190} r={14} fill="transparent" stroke="black" strokeWidth={1} />
+              <SvgText x={482} y={195} fontSize={10} fill="black">D</SvgText>
+              <Circle cx={485} cy={230} r={14} fill="transparent" stroke="black" strokeWidth={1} />
+              <SvgText x={482} y={235} fontSize={10} fill="black">H</SvgText>
+              <Rect x={500} y={50} width={-20} height={50} fill="transparent" stroke="black" strokeWidth={1} />
+            </Svg>
+          </Animated.View>
+        </View>
+        <Rect x={160} y={120} width={180} height={400} fill="transparent" stroke="black" strokeWidth={1} />
 
-      {/* <View style={styles.sensorsContainer}>
+        {/* <View style={styles.sensorsContainer}>
         <Text style={styles.sensorsTitle}>Sensors</Text>
         {sensors.map((sensor) => (
           <Pressable
@@ -706,8 +706,8 @@ const Map: React.FC = () => {
           </Pressable>
         ))}
       </View> */}
-      {/* Sensors List */}
-      {/* <View style={styles.sensorsContainer}>
+        {/* Sensors List */}
+        {/* <View style={styles.sensorsContainer}>
           <Text style={styles.sensorsTitle}>Sensors</Text>
           <FlatList
             data={sensors}
@@ -725,29 +725,29 @@ const Map: React.FC = () => {
             showsVerticalScrollIndicator={false}
           />
         </View> */}
-        
 
-<View style={styles.sensorsContainer}>
-  <Text style={styles.sensorsTitle}>Sensors</Text>
-  <FlatList
-    data={sensors}
-    keyExtractor={(item) => item.id}
-    renderItem={({ item }) => (
-      <View style={styles.sensorRow}>
-        <Text style={styles.sensorText}>{item.name}</Text>
-        <Switch
-          value={item.isActive}
-          onValueChange={() => handleSensorPress(item.id)}
-          trackColor={{ false: "#ccc", true: "#2E7D32" }}
-          thumbColor={item.isActive ? "#A5D6A7" : "#f4f3f4"}
-        />
+
+        <View style={styles.sensorsContainer}>
+          <Text style={styles.sensorsTitle}>Sensors</Text>
+          <FlatList
+            data={sensors}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.sensorRow}>
+                <Text style={styles.sensorText}>{item.name}</Text>
+                <Switch
+                  value={item.isActive}
+                  onValueChange={() => handleSensorPress(item.id)}
+                  trackColor={{ false: "#ccc", true: "#2E7D32" }}
+                  thumbColor={item.isActive ? "#A5D6A7" : "#f4f3f4"}
+                />
+              </View>
+            )}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
+
       </View>
-    )}
-    showsVerticalScrollIndicator={false}
-  />
-</View>
-
-    </View>
     </ImageBackground>
   );
 };
@@ -761,7 +761,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-  },  
+  },
   fadeOverlay: {
     position: "absolute",
     top: 2, // adjust as needed
@@ -770,7 +770,7 @@ const styles = StyleSheet.create({
     height: 500, // size of the faded area
     backgroundColor: "rgba(88, 76, 79, 0.7)", // black with 40% opacity
     zIndex: 1, // make sure it overlays but doesn't block important elements
-  },  
+  },
   outerContainer: {
     flex: 1,
     flexDirection: "row",
@@ -798,7 +798,7 @@ const styles = StyleSheet.create({
     // backgroundColor: "lightgray",
     borderRadius: 5,
     padding: 10,
-    
+
   },
   itemContainer: {
     marginBottom: 8
