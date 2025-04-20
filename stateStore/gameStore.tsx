@@ -8,10 +8,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     gameData: null,
     isGameSet: false,
     playersData: null,
-    // guestsData: null,
+    adminJwt: null,
     displayPlayers: [],
     bookingDetails: null,
     setGameData: (gameData: Game) => set({ gameData: gameData }),
+    setAdminJwt: (adminJwt: string) => set({adminJwt: adminJwt}),
     resetGameData: () => set({ gameData: null }),
     setIsGameSet: (value: boolean) => set({ isGameSet: value }),
     updateGameData: (updatedFields: Partial<Game>) => {
@@ -35,8 +36,4 @@ export const useGameStore = create<GameState>((set, get) => ({
                 : [player], // Initialize array if empty
             })),
     setBookingDetails: (booking: Booking) => set({bookingDetails: booking})
-    // setGuestsData: (guest: Guest) =>
-    //     set((state) => ({
-    //         guestsData: state.guestsData ? [...state.guestsData, guest] : [guest]
-    //     })),
     }));
