@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, ImageBackground } from 'react-native';
 import { router } from 'expo-router';
 import useAuthStore from '@/stateStore/authStore';
 import { useCompanyStore } from '@/stateStore/companyStore';
@@ -51,7 +51,9 @@ export default function WelcomeScreen() {
   );
 
   return (
-    <View style={commonStyles.container}>
+    
+      
+    <View style={commonStyles.container}> 
       <LinearGradient colors={[colors.dark1, colors.dark2]} style={commonStyles.container}>
         <View style={commonStyles.layoutHeaderSection}>
           <Pressable onPress={navigateToPasscode} style={commonStyles.headerPressable}>
@@ -89,5 +91,6 @@ export default function WelcomeScreen() {
         setPasscode={setCompanyPasscode}
       />
     </View>
+    
   );
 }
