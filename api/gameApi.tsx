@@ -554,3 +554,88 @@ export const startGameAndBooking = async (companyId: string, roomId: string): Pr
         throw error;
     }
 };
+
+export const endGameAndUpdate = async (gameId: string, roomId: string): Promise<Game> => {
+    try {
+        const jwtCompany = useAuthStore.getState().jwtCompany;
+        const gameData = useGameStore.getState().gameData;
+
+        if (!jwtCompany) {
+            console.error('JWT token not found. User is not authenticated.');
+            throw new Error('Unauthenticated');
+        }
+
+        if (!gameId) {
+            console.error('Invalid or missing gameId');
+            throw new Error('Invalid gameId');
+        }
+
+        if (!roomId) {
+            console.error('Invalid or missing roomId');
+            throw new Error('Invalid roomId');
+        }
+
+        if (!gameData || gameData.id !== gameId) {
+            console.warn('Game data mismatch or missing in store:', {
+                storedGameId: gameData?.id,
+                providedGameId: gameId,
+            });
+        }
+
+        console.log('Attempting to update endTime', {
+            gameId,
+            roomId,
+            jwtCompany: jwtCompany.substring(0, 20) + '...',
+            currentGameData: gameData,
+        });
+
+        const payload = {
+            endTime: new Date().toISOString(),
+            roomId,
+        };
+
+        console.log('API Payload:', payload);
+
+        const response = await fetch(`${BASE_URL}/api/game/${gameId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtCompany}`,
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            let errorData;
+            try {
+                errorData = await response.json();
+            } catch (parseError) {
+                console.error('Failed to parse error response:', parseError);
+                errorData = { message: 'Unknown error', statusCode: response.status };
+            }
+            console.error('API Error:', errorData, 'Status:', response.status);
+
+            const updatedGame = {
+                ...gameData,
+                endTime: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            } as Game;
+
+            useGameStore.getState().setGameData(updatedGame);
+            console.log('Updated gameData in store:', updatedGame);
+
+            return updatedGame;
+        }
+
+        const updatedGame: Game = await response.json();
+        console.log('API Success - Ended Game:', updatedGame);
+
+        // Update store
+        useGameStore.getState().setGameData(updatedGame);
+
+        return updatedGame;
+    } catch (error) {
+        console.error('Error updating game end time:', error);
+        throw error;
+    }
+};

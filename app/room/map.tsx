@@ -6,7 +6,7 @@ import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 import { useCompanyStore } from '@/stateStore/companyStore';
 import { useGameStore } from '@/stateStore/gameStore';
-import { startGameAndBooking, fetchBookingsByCompanyId } from '@/api/gameApi';
+import { startGameAndBooking, endGameAndUpdate } from '@/api/gameApi';
 import { formatTime } from "@/utils/formatTime";
 
 interface Hint {
@@ -65,7 +65,7 @@ const Map: React.FC = () => {
   const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
   const [isChangeLogVisible, setIsChangeLogVisible] = useState(false);
   const { companyData, selectedRoomForGame } = useCompanyStore();
-  const { setIsGameSet, setGameData, setBookingDetails } = useGameStore();
+  const { setIsGameSet, setGameData, setBookingDetails, gameData } = useGameStore();
 
   const [timeRemaining, setTimeRemaining] = useState<number>(
     selectedRoomForGame?.duration ? selectedRoomForGame.duration * 60 : 0
@@ -83,7 +83,7 @@ const Map: React.FC = () => {
             clearInterval(interval);
             showAlertDialog({
               title: "Time's Up!",
-              message: "The game has ended due to the time limit being reached.",
+              message: "The game couldn't be completed in time.",
             });
             setGameStarted(false);
             return 0;
@@ -94,6 +94,96 @@ const Map: React.FC = () => {
       timerRef.current.push(interval);
     }
   }, [gameStarted]);
+
+  useEffect(() => {
+    if (!gameStarted || !gameData?.id || !selectedRoomForGame?.id) {
+      console.log('Cannot end game:', {
+        gameStarted,
+        gameId: gameData?.id,
+        roomId: selectedRoomForGame?.id,
+        timeRemaining,
+      });
+      return;
+    }
+
+    const puzzle9 = puzzles.find((p) => p.id === 'puzzle_9');
+    const isPuzzle9Solved = puzzle9?.isSolved;
+    const mainDoorSensor = sensors.find((s) => s.id === 'main_door');
+    const isMainDoorClosed = !mainDoorSensor?.isActive;
+
+    console.log('Game Status:', {
+      isPuzzle9Solved,
+      isMainDoorClosed,
+      puzzle9Id: puzzle9?.id,
+      mainDoorSensorId: mainDoorSensor?.id,
+      timeRemaining,
+    });
+
+    // Timer for decrementing timeRemaining
+    let interval: NodeJS.Timeout | null = null;
+    if (gameStarted && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval!);
+            console.log('Ending game due to time up');
+            endGameAndUpdate(gameData.id, selectedRoomForGame.id)
+              .then((updatedGame) => {
+                setGameStarted(false);
+                setTimeRemaining(0);
+              })
+              .catch((error) => {
+                console.error('Error ending game:', error);
+                showAlertDialog({
+                  title: 'Error',
+                  message: `Failed to end the game: ${error.message || 'Unknown error'}.`,
+                });
+              });
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      timerRef.current.push(interval);
+    }
+
+    // Check game-ending conditions for puzzle_9
+    if (isPuzzle9Solved && isMainDoorClosed) {
+      console.log('Ending game due to puzzle_9 solved and main door closed');
+      endGameAndUpdate(gameData.id, selectedRoomForGame.id)
+        .then((updatedGame) => {
+          setGameStarted(false);
+          setTimeRemaining(0);
+          showAlertDialog({
+            title: 'Game Ended',
+            message: 'Game is completed successfully by the team!',
+          });
+          // Clean up timers
+          timerRef.current.forEach((item) => {
+            if (typeof item === 'function') {
+              item();
+            } else {
+              clearInterval(item);
+            }
+          });
+          timerRef.current = [];
+        })
+        .catch((error) => {
+          console.error('Error ending game:', error);
+          showAlertDialog({
+            title: 'Error',
+            message: `Failed to end the game: ${error.message || 'Unknown error'}. Please try again.`,
+          });
+        });
+    }
+
+    // Cleanup
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [puzzles, sensors, gameStarted, gameData, selectedRoomForGame, timeRemaining]);
 
   useEffect(() => {
     const puzzlesUnsubscribe = onSnapshot(collection(db, "puzzles"), (snapshot) => {
@@ -667,7 +757,7 @@ const Map: React.FC = () => {
         const replacement_piece = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
 
         if (!skull && !replacement_piece) {
-          updateSensorInFirebase("intable_sensor", { isActive: true });
+          updateSensorInFirebase("table_lock", { isActive: true });
           updatePuzzleInFirebase("puzzle_9", "middle_table", { "actions.isActivated": true });
           showAlertDialog({
             title: "Automation",
