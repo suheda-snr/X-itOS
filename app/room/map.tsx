@@ -566,7 +566,7 @@ const Map: React.FC = () => {
 
 
           {/* Triangles above table with labels and color change based on puzzle completion */}
-{["Left", "Center", "Right"].map((label, index) => {
+{/* {["Left", "Center", "Right"].map((label, index) => {
   const cx = 10; // X-coordinate for all triangles (you can adjust this as needed)
   let cy;
   const puzzleState = puzzles[2]?.stages["wall_buttons"].pieces?.[`button_${index + 1}`]?.isInteracted;
@@ -578,25 +578,25 @@ const Map: React.FC = () => {
     cy = 90;
   } else if (label === "Right") {
     cy = 75;
-  }
+  } */}
 
-  return (
+  {/* return (
     <React.Fragment key={label}>
       {/* Triangle */}
-      <Polygon
+      {/* <Polygon
         points={`${cx},${cy ?? 0} ${cx - 9},${(cy ?? 0) - 5} ${cx - 9},${(cy ?? 0) + 5}`} // Triangular shape
         fill={puzzleState ? "green" : "lightgray"} // Change color based on puzzle completion
         stroke="black"
         strokeWidth={1}
-      />
+      /> */}
       
       {/* Label */}
-      <SvgText x={cx - 2} y={(cy ?? 0) + 4} fontSize={8} fill="black">
+      {/* <SvgText x={cx - 2} y={(cy ?? 0) + 4} fontSize={8} fill="black">
         {label[0]} {/* Use the first letter for the label (Left = L, Center = C, etc.) */}
-      </SvgText>
-    </React.Fragment>
-  );
-})}
+      {/* </SvgText>  */}
+    {/* </React.Fragment>
+  );  */}
+{/* })} */}
 
 
             
@@ -691,41 +691,6 @@ const Map: React.FC = () => {
         </Animated.View>
       </View>
       <Rect x={160} y={120} width={180} height={400} fill="transparent" stroke="black" strokeWidth={1} />
-
-      {/* <View style={styles.sensorsContainer}>
-        <Text style={styles.sensorsTitle}>Sensors</Text>
-        {sensors.map((sensor) => (
-          <Pressable
-            key={sensor.id}
-            style={styles.sensorButton}
-            onPress={() => handleSensorPress(sensor.id)}
-          >
-            <Text style={styles.sensorText}>
-              {sensor.id} ({sensor.isActive ? "Active" : "Inactive"})
-            </Text>
-          </Pressable>
-        ))}
-      </View> */}
-      {/* Sensors List */}
-      {/* <View style={styles.sensorsContainer}>
-          <Text style={styles.sensorsTitle}>Sensors</Text>
-          <FlatList
-            data={sensors}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <Pressable
-                style={[styles.sensorButton, item.isActive ? styles.activeSensor : styles.inactiveSensor]}
-                onPress={() => handleSensorPress(item.id)}
-              >
-                <Text style={styles.sensorText}>
-                  {item.name}
-                </Text>
-              </Pressable>
-            )}
-            showsVerticalScrollIndicator={false}
-          />
-        </View> */}
-        
 
 <View style={styles.sensorsContainer}>
   <Text style={styles.sensorsTitle}>Sensors</Text>
