@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, ImageBackground } from 'react-native';
 import commonStyles from '@/styles/common';
 import { PasswordInputField } from '@/components/elements/PasswordInputField';
 import { Button } from '@/components/elements/Button';
@@ -19,6 +19,9 @@ const ModalComponent: React.FC<ModalComponentProps> = ({ visible, onClose, onSub
     };
 
     return (
+        // <ImageBackground source={{ uri: 'https://images.unsplash.com/photo-1585951237318-9ea5e175b891?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80' }}
+        // style={commonStyles.container}>
+
         <Modal transparent={true} visible={visible} animationType="fade" onRequestClose={onClose}>
             <View style={[modalStyles.centeredContainer]}>
                 <View style={modalStyles.modalContainer}>
@@ -49,6 +52,7 @@ const ModalComponent: React.FC<ModalComponentProps> = ({ visible, onClose, onSub
                 </View>
             </View>
         </Modal>
+        // </ImageBackground>
     );
 };
 
