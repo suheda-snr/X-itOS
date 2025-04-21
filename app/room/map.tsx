@@ -7,6 +7,7 @@ import { db } from "../firebase/firebaseConfig";
 import { useCompanyStore } from '@/stateStore/companyStore';
 import { useGameStore } from '@/stateStore/gameStore';
 import { startGameAndBooking, fetchBookingsByCompanyId } from '@/api/gameApi';
+import { formatTime } from "@/utils/formatTime";
 
 interface Hint {
   message: string;
@@ -66,9 +67,33 @@ const Map: React.FC = () => {
   const { companyData, selectedRoomForGame } = useCompanyStore();
   const { setIsGameSet, setGameData, setBookingDetails } = useGameStore();
 
+  const [timeRemaining, setTimeRemaining] = useState<number>(
+    selectedRoomForGame?.duration ? selectedRoomForGame.duration * 60 : 0
+  );
+
   useEffect(() => {
     puzzlesRef.current = puzzles;
   }, [puzzles]);
+
+  useEffect(() => {
+    if (gameStarted && timeRemaining > 0) {
+      const interval = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            showAlertDialog({
+              title: "Time's Up!",
+              message: "The game has ended due to the time limit being reached.",
+            });
+            setGameStarted(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      timerRef.current.push(interval);
+    }
+  }, [gameStarted]);
 
   useEffect(() => {
     const puzzlesUnsubscribe = onSnapshot(collection(db, "puzzles"), (snapshot) => {
@@ -269,6 +294,8 @@ const Map: React.FC = () => {
     } catch (error) {
       console.log('Error starting the game and booking:', error);
     }
+
+    setTimeRemaining(selectedRoomForGame.duration * 60);
 
     showAlertDialog({
       title: "Start",
@@ -712,14 +739,8 @@ const Map: React.FC = () => {
           </View>
         </Modal>
 
-
         <View style={styles.inventoryContainer}>
-          <Button
-            title="Show Changes"
-            onPress={toggleChangeLog}
-            color='gray'
-
-          />
+          <Button title="Show Changes" onPress={toggleChangeLog} color='gray' />
           <Text style={styles.inventoryTitle}>Puzzles</Text>
 
           {/* <View style={styles.fadeOverlay} /> */}
@@ -1008,7 +1029,9 @@ const Map: React.FC = () => {
         <Rect x={160} y={120} width={180} height={400} fill="transparent" stroke="black" strokeWidth={1} />
 
         <View style={styles.sensorsContainer}>
-          <Text style={styles.sensorsTitle}>Sensors</Text>
+          <Text style={styles.sensorsTitle}>
+            {formatTime(timeRemaining)}
+          </Text>
           <FlatList
             data={sensors}
             keyExtractor={(item) => item.id}
@@ -1130,38 +1153,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     color: "black",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    width: '80%',
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  changeLogContainer: {
-    maxHeight: '80%',
-    marginBottom: 10,
-  },
-  changeEntry: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    paddingVertical: 10,
-    marginBottom: 10,
-  },
-  changeTimestamp: {
-    fontWeight: 'bold',
-    marginBottom: 5,
   },
   modalOverlay: {
     flex: 1,

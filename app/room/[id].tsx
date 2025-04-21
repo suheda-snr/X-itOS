@@ -77,7 +77,7 @@ export default function RoomScreen() {
             <View style={styles.infoItem}>
               <Ionicons name="time-outline" size={24} color="#ff4b8c" />
               <Text style={styles.infoLabel}>Duration</Text>
-              <Text style={styles.infoValue}>TBA</Text>
+              <Text style={styles.infoValue}>{room?.duration} minutes</Text>
             </View>
             <View style={styles.infoItem}>
               <Ionicons name="people-outline" size={24} color="#ff4b8c" />
@@ -92,7 +92,7 @@ export default function RoomScreen() {
             <View style={styles.infoItem}>
               <Ionicons name="star-outline" size={24} color="#ff4b8c" />
               <Text style={styles.infoLabel}>Difficulty</Text>
-              <Text style={styles.infoValue}>TBA</Text>
+              <Text style={styles.infoValue}>{room?.difficulty}</Text>
             </View>
           </View>
 
