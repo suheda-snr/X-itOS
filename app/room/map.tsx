@@ -4,6 +4,9 @@ import Svg, { Rect, Circle, Text as SvgText, Line, Polygon } from "react-native-
 import { Alert } from "react-native";
 import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
+import { useCompanyStore } from '@/stateStore/companyStore';
+import { useGameStore } from '@/stateStore/gameStore';
+import { startGameAndBooking, fetchBookingsByCompanyId } from '@/api/gameApi';
 
 interface Hint {
   message: string;
@@ -60,6 +63,8 @@ const Map: React.FC = () => {
   const timerRef = useRef<Array<NodeJS.Timeout | Function>>([]);
   const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
   const [isChangeLogVisible, setIsChangeLogVisible] = useState(false);
+  const { companyData, selectedRoomForGame } = useCompanyStore();
+  const { setIsGameSet, setGameData, setBookingDetails } = useGameStore();
 
   useEffect(() => {
     puzzlesRef.current = puzzles;
@@ -237,12 +242,37 @@ const Map: React.FC = () => {
     setIsChangeLogVisible(!isChangeLogVisible);
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (gameStarted) return;
     setGameStarted(true);
+
+    if (!companyData?.id || !selectedRoomForGame?.id) {
+      console.warn('Company ID or Room ID is missing');
+      return;
+    }
+
+    let teamName: string = "guest";
+    try {
+      // Start game and update booking
+      const updatedGame = await startGameAndBooking(companyData.id, selectedRoomForGame.id);
+
+      if (updatedGame) {
+        setGameStarted(true);
+        setIsGameSet(true);
+
+        teamName = updatedGame?.teamName;
+
+        console.log('Game started successfully:', updatedGame);
+      } else {
+        console.log('No game or booking to update.');
+      }
+    } catch (error) {
+      console.log('Error starting the game and booking:', error);
+    }
+
     showAlertDialog({
       title: "Start",
-      message: "Game started! Temple wall action activated.",
+      message: `Game started for ${teamName} team! Temple wall action activated.`,
     });
 
     const puzzleId = puzzles[0]?.id || "puzzle_1";
