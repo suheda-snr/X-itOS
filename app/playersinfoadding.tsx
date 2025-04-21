@@ -6,14 +6,27 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useGameStore } from "@/stateStore/gameStore";
 import { DisplayPlayers, Player } from "@/types/player";
-import { addGuestPlayers } from "@/api/gameApi";
-import { v4 as uuidv4 } from 'uuid';
-import { updateGameData } from "@/api/gameApi";
+import { addGuestPlayers, updateGameData } from "@/api/gameApi";
+import * as Profanity from "@2toad/profanity";
 
+const finnishProfanity = ["vittu", "perkele", "saatana", "jumalauta", "helvetti", "nussi", "perse", "kuora", "paska", "kyrpä"];
 
+// Initialize English profanity checker
+const profanity = new Profanity.Profanity({
+  language: "en",
+});
+
+const checkProfanity = (name: string): boolean => {
+  // Check English profanity
+  if (profanity.exists(name)) {
+    return true;
+  }
+
+  const nameLower = name.toLowerCase();
+  return finnishProfanity.some((word) => nameLower.includes(word));
+};
 
 const PlayersInfoAddingScreen: React.FC = () => {
-  var crypto: Crypto
   const { gameData, updateGameData: updateStoreGameData } = useGameStore();
   const teamName = gameData?.teamName || "Team Name";
   const [newTeamName, setNewTeamName] = useState(teamName);
@@ -25,24 +38,16 @@ const PlayersInfoAddingScreen: React.FC = () => {
 
   const updatePlayerRole = (id: string, role: "Adult" | "Child" | ""): void => {
     const isAdult = role === "Adult";
-    const updatedUser = displayPlayers?.map((player) =>
+    displayPlayers?.map((player) =>
       player.id === id ? setDisplayPlayers({ ...player, isAdult: isAdult }) : setDisplayPlayers(player)
     )
+
     console.log("updatedUser")
-
     console.log(displayPlayers)
-
-    // if(updatedUser){
-    //   setDisplayPlayers(updatedUser[0]);
-    //   console.log("ISADULT????   " + isAdult)
-    //   console.log(displayPlayers)
-    // }else{
-    //   console.log("updatePlayerRole: No user found")
-    // }
   };
 
   const addGuest = () => {
-    const newGuest: DisplayPlayers = { 
+    const newGuest: DisplayPlayers = {
       id: `${displayPlayers.length * 2}`,
       name: `Guest ${displayPlayers.length + 1}`,
       isGuest: true,
@@ -57,6 +62,11 @@ const PlayersInfoAddingScreen: React.FC = () => {
   const handleSaveName = async () => {
     if (newTeamName.length > 15) {
       Alert.alert("Invalid Name", "Team names longer than 15 characters are not valid.");
+      return;
+    }
+
+    if (checkProfanity(newTeamName)) {
+      Alert.alert("Invalid Name", "The team name contains inappropriate language. Please choose a different name.");
       return;
     }
 
@@ -110,7 +120,6 @@ const PlayersInfoAddingScreen: React.FC = () => {
             onPress: async () => {
               const playersParam = JSON.stringify(playersData);
               const teamNameParam = JSON.stringify(teamName);
-              //TBA fixing types 
               await addGuestPlayers(displayPlayers)
               router.push(`/teaminfo?players=${encodeURIComponent(playersParam)}&teamName=${encodeURIComponent(teamNameParam)}`);
             },
@@ -160,7 +169,7 @@ const PlayersInfoAddingScreen: React.FC = () => {
             <Picker
               selectedValue={item.isAdult === null ? "" : item.isAdult ? "Adult" : "Child"}
               style={item.isGuest ? styles.picker : styles.pickerNotAvailable}
-              onValueChange={(value) => updatePlayerRole(item.id, value)}
+              onValueChange={(value) => updatePlayerRole(item.id, value as "" | "Adult" | "Child")}
               enabled={item.isGuest}
             >
               <Picker.Item label="Choose..." value="" />

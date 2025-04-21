@@ -1,14 +1,28 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
 import { QRScanner } from '../../components/QRScanner';
+import { addPlayerWithAccount } from '@/api/gameApi';
+import { decodeJWT } from '@/utils/jwtUtils';
+import { isAdult } from '@/utils/ageUtils';
+import { validatePersonalQr } from '@/api/gameApi';
 
 const PersonalQR = () => {
     const router = useRouter();
 
-    const handlePersonalScan = (data: string) => {
+    const handlePersonalScan = async (data: string) => {
         console.log('Personal QR Scanned:', data);
 
-        // Redirect to playersinfoadding after successful scan
+        const result = await validatePersonalQr(data);
+
+        if (!result.success) {
+            console.error('QR validation failed:', result.error);
+            return
+        } 
+
+        const userData = result.userData;
+        const isAdultPlayer = isAdult(userData.dateOfBirth)
+
+        await addPlayerWithAccount(userData.id, isAdultPlayer)
         router.push('/playersinfoadding');
     };
 

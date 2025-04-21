@@ -5,6 +5,8 @@ import { QRScanner } from '../../components/QRScanner';
 import { useCompanyStore } from '../../stateStore/companyStore';
 import { addPlayerWithAccount, createGame, getBookingDetails } from '../../api/gameApi';
 import { useGameStore } from '@/stateStore/gameStore';
+import { decodeJWT } from '@/utils/jwtUtils';
+import { validateBooking } from '../../api/gameApi';
 
 // Helper function to generate a team name
 const generateTeamName = () => {
@@ -21,25 +23,48 @@ const TicketQR = () => {
 
         if (!chosenRoom) {
             Alert.alert('Error', 'No room selected for the game');
+            console.log('some trouble with room')
             return;
         }
 
-        const teamName = generateTeamName();
-
-        const newGame = {
-            teamName,
-            roomId: chosenRoom.id,
-            bookingId: data,
-        };
-
         try {
-            console.log('Creating game:', newGame);
-            const createdGame = await createGame(newGame);
+            const validation = await validateBooking(data);
+
+            if (!validation.success) {
+                console.error(validation.error);
+                return
+            } 
+
             //for automated user adding
-            //await getBookingDetails(createdGame.bookingId)
-            //TBA getting userid
-            //await addPlayerWithAccount(useGameStore.getState().bookingDetails?.user)
-            router.push(`/playersinfoadding?teamName=${encodeURIComponent(teamName)}`);
+            if (validation.success) {
+                const bookingData = await getBookingDetails(validation.data.bookingId);
+
+                if(bookingData?.room.id == chosenRoom.id){
+                    console.log('Creating game...');
+
+                    const teamName = generateTeamName();
+
+                    const newGame = {
+                        teamName,
+                        roomId: chosenRoom.id,
+                        bookingId: validation.data.bookingId,
+                    };
+
+                    const createdGame = await createGame(newGame);
+
+                    if(createdGame){
+                        console.log("Adding player...")
+                        await addPlayerWithAccount(validation.data.userId)
+                        router.push(`/playersinfoadding?teamName=${encodeURIComponent(teamName)}`);
+                    }else{
+                        throw new Error('Failed to add player');
+                    }
+                }else {
+                    throw new Error('Wrong room!');
+                }  
+            } else {
+                throw new Error('Failed to create game. Created game is undefined.');
+            }            
         } catch (error: any) {
             console.log('Error creating game:', error);
             const errorMessage = error.message.includes('Game can only be created for scheduled bookings')
