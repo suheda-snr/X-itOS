@@ -2,8 +2,11 @@ import React, { useRef, useState, useEffect } from "react";
 import { View, StyleSheet, Animated, PanResponder, Pressable, Text, ScrollView, Image } from "react-native";
 import Svg, { Rect, Circle, Text as SvgText, Line } from "react-native-svg";
 import { Alert } from "react-native";
+import GameTimer, {GameTimerHandle} from "@/components/GameTimer";
 import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase/firebaseConfig";
+import { useCompanyStore } from "@/stateStore/companyStore";
+import { useHintScheduler } from "@/utils/useHintScheduler";
 
 interface Hint {
   message: string;
@@ -54,6 +57,8 @@ const PlayerActions: React.FC = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const timerRef = useRef<Array<NodeJS.Timeout | Function>>([]);
   const [loading, setLoading] = useState<boolean>(false)
+  const timerGameRef = useRef<GameTimerHandle>(null);
+  const roomData = useCompanyStore.getState().selectedRoomForGame
 
   useEffect(() => {
     puzzlesRef.current = puzzles;
@@ -190,6 +195,23 @@ const PlayerActions: React.FC = () => {
     Alert.alert(title, message, [{ text: "OK" }], { cancelable: true });
   };
 
+  useHintScheduler(gameStarted, [
+    { after: 0.5, action: () => hint1() },
+    { after: 5, action: () => console.log('⏱️ Прошло 5 минут — вторая подсказка!') },
+    { after: 10, action: () => console.log('⏱️ Прошло 10 минут — третья подсказка!') },
+  ]);
+
+  const hint1 = async() => {
+    await updatePuzzleInFirebase("puzzle_1", "temple_wall", {}, "hint_1", { isShared: true });
+
+    const hint1_message = puzzlesRef.current[0]?.stages?.temple_wall?.hints?.["hint_1"]?.["message"];
+
+    showAlertDialog({
+      title: "Hint!",
+      message: `${hint1_message}`,
+    });
+  }
+
   const isPreviousStepCompleted = (stageName: string, puzzleOrder: number) => {
     const isCurrentPuzzleSolved = puzzlesRef.current[puzzleOrder]?.stages?.[stageName]?.isSolved;
 
@@ -203,10 +225,19 @@ const PlayerActions: React.FC = () => {
     return isCurrentPuzzleSolved
   }
 
+  const getElapsed = () => {
+    const seconds = timerGameRef.current?.getElapsedTime();
+    console.log('Time elapsed:', seconds, "seconds");
+    return seconds
+  };
+
   const startTheGame = async() => {
     setLoading(true)
-    await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "actions.isActivated": true, });
+    await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "actions.isActivated": true });
     setLoading(false)
+    timerGameRef.current?.start();
+    setGameStarted(true)
+    console.log(roomData)
     showAlertDialog({
       title: "Start",
       message: "Game started! Temple wall action activated.",
@@ -243,7 +274,10 @@ const PlayerActions: React.FC = () => {
   const turnTotem = async() => {
         setLoading(true)        
 
-        if(!isPreviousStepCompleted("temple_wall", 0)) return
+        if(!isPreviousStepCompleted("temple_wall", 0)){
+          setLoading(false)
+          return
+        } 
 
         await updatePuzzleInFirebase("puzzle_1", "totem", { "pieces.piece_1.isInteracted": true });
         await updatePuzzleInFirebase("puzzle_1", "totem", { "pieces.piece_2.isInteracted": false });
@@ -274,7 +308,10 @@ const PlayerActions: React.FC = () => {
   const placePuzzlePiecesInCorrectOrder = async() => {
         setLoading(true)
 
-        if(!isPreviousStepCompleted("totem", 0)) return
+        if(!isPreviousStepCompleted("totem", 0)){
+          setLoading(false)
+          return
+        } 
 
         await updatePuzzleInFirebase("puzzle_2", "piece_1", { "pieces.piece_1.isInteracted": true });
         await updatePuzzleInFirebase("puzzle_2", "piece_1", { "pieces.piece_2.isInteracted": true });
@@ -308,7 +345,10 @@ const PlayerActions: React.FC = () => {
   const pressCorrectWallButtons = async() => {
     setLoading(true)
 
-    if(!isPreviousStepCompleted("piece_1", 1)) return
+    if(!isPreviousStepCompleted("piece_1", 1)){
+      setLoading(false)
+      return
+    } 
 
     await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_1.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_2.isInteracted": true });
@@ -349,7 +389,10 @@ const PlayerActions: React.FC = () => {
   const putGearsOnCorrectPlaces = async() => {
     setLoading(true)
 
-    if(!isPreviousStepCompleted("wall_buttons", 2)) return
+    if(!isPreviousStepCompleted("wall_buttons", 2)){
+      setLoading(false)
+      return
+    } 
 
     await updatePuzzleInFirebase("puzzle_4", "gears", { "pieces.gears.isInteracted": true });
 
@@ -372,7 +415,10 @@ const PlayerActions: React.FC = () => {
   const crankRotationForGears = async() => {
     setLoading(true)
 
-    if(!isPreviousStepCompleted("gears", 3)) return
+    if(!isPreviousStepCompleted("gears", 3)){
+      setLoading(false)
+      return
+    } 
 
     await updatePuzzleInFirebase("puzzle_4", "crank_rotation", { "piece.crank.isInteracted": true });
 
@@ -394,7 +440,10 @@ const PlayerActions: React.FC = () => {
   const insertBall = async() => {
     setLoading(true)
 
-    if(!isPreviousStepCompleted("crank_rotation", 3)) return
+    if(!isPreviousStepCompleted("crank_rotation", 3)){
+      setLoading(false)
+      return
+    } 
 
     await updatePuzzleInFirebase("puzzle_5", "insert_ball", { "pieces.ball.isInteracted": true });
 
@@ -415,7 +464,10 @@ const PlayerActions: React.FC = () => {
   const crankRotationToGetBalls = async() => {
     setLoading(true)
 
-    if(!isPreviousStepCompleted("insert_ball", 4)) return
+    if(!isPreviousStepCompleted("insert_ball", 4)){
+      setLoading(false)
+      return
+    } 
 
     await updatePuzzleInFirebase("puzzle_5", "crank_rotation_to_get_balls", { "pieces.crank.isInteracted": true });
 
@@ -437,7 +489,10 @@ const PlayerActions: React.FC = () => {
   const weightPuzzle = async() => {
     setLoading(true)
 
-    if(!isPreviousStepCompleted("crank_rotation_to_get_balls", 4)) return
+    if(!isPreviousStepCompleted("crank_rotation_to_get_balls", 4)){
+      setLoading(false)
+      return
+    } 
 
     await updatePuzzleInFirebase("puzzle_6", "weight", { "pieces.piece_1.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_6", "weight", { "pieces.piece_2.isInteracted": true });
@@ -462,7 +517,10 @@ const PlayerActions: React.FC = () => {
   const placeWheelsInCorrectPosition = async() => {
     setLoading(true)
 
-    if(!isPreviousStepCompleted("weight", 5)) return
+    if(!isPreviousStepCompleted("weight", 5)){
+      setLoading(false)
+      return
+    } 
 
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "pieces.piece_1.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "pieces.piece_2.isInteracted": true });
@@ -488,7 +546,10 @@ const PlayerActions: React.FC = () => {
   const putItemsOnAltar = async() => {
     setLoading(true)
 
-    if(!isPreviousStepCompleted("wheels", 6)) return
+    if(!isPreviousStepCompleted("wheels", 6)){
+      setLoading(false)
+      return
+    } 
 
     await updatePuzzleInFirebase("puzzle_8", "altar", { "pieces.piece_1.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_8", "altar", { "pieces.piece_2.isInteracted": true });
@@ -514,7 +575,10 @@ const PlayerActions: React.FC = () => {
   const removeTablePegs = async() => {
     setLoading(true)
 
-    if(!isPreviousStepCompleted("altar", 7))
+    if(!isPreviousStepCompleted("altar", 7)){
+      setLoading(false)
+      return
+    } 
 
     await updatePuzzleInFirebase("puzzle_9", "pegs", { "pieces.piece_1.isInteracted": true });
     await updatePuzzleInFirebase("puzzle_9", "pegs", { "pieces.piece_2.isInteracted": true });
@@ -537,7 +601,10 @@ const PlayerActions: React.FC = () => {
   const closeTWdoor = async() => {
     setLoading(true)
 
-    if(!isPreviousStepCompleted("pegs", 8)) return
+    if(!isPreviousStepCompleted("pegs", 8)){
+      setLoading(false)
+      return
+    } 
 
     await updateSensorInFirebase("TW_door", { isActive: false });
 
@@ -565,6 +632,7 @@ const PlayerActions: React.FC = () => {
         title: "Warning!",
         message: "You can not proceed to the next step of the game without completing the previous one!",
       });
+      setLoading(false)
       return
     }
 
@@ -579,9 +647,11 @@ const PlayerActions: React.FC = () => {
           await updatePuzzleStatus("puzzle_9", {"isSolved": true})
           await updateSensorInFirebase("TW_door", { isActive: true });
           setLoading(false)
+          timerGameRef.current?.stop();
+          const gameTime = getElapsed()
           showAlertDialog({
             title: "Puzzle 9 stage 2 solved",
-            message: "Skull replaced, door opened. Game completed!",
+            message: `Skull replaced, door opened. Game completed in ${gameTime} seconds!`,
           });
         }
   }
@@ -589,6 +659,8 @@ const PlayerActions: React.FC = () => {
   const resetSensorsAndPuzzles = async() => {
     console.log("RESETTING.....")
     setLoading(true)
+    setGameStarted(false)
+    timerGameRef.current?.stop();
     //puzzle 1 stage 1
     await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "isSolved": false });
     await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "actions.isActivated": false, });
@@ -699,6 +771,7 @@ const PlayerActions: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <GameTimer ref={timerGameRef} durationMinutes={30}/>
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <Pressable style={styles.button} onPressIn={startTheGame}>
         <Text style={styles.buttonText}>
