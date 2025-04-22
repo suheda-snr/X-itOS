@@ -60,6 +60,7 @@ const PlayerActions: React.FC = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const timerRef = useRef<Array<NodeJS.Timeout | Function>>([]);
   const [loading, setLoading] = useState<boolean>(false)
+  const displayedHintsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     puzzlesRef.current = puzzles;
@@ -153,36 +154,41 @@ const PlayerActions: React.FC = () => {
 
   useEffect(() => {
     const hintRequestsRef = doc(db, "hintRequests", "requests");
-  
+    
     const unsubscribe = onSnapshot(hintRequestsRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         const approvedRequests = Object.entries(data).filter(
           ([_, request]: [string, any]) => request.state === "approved"
         );
-  
+
         approvedRequests.forEach(([key, request]) => {
           const { puzzleId, stageId } = request;
-  
-          // Find the corresponding puzzle and stage
-          const puzzle = puzzlesRef.current.find((p) => p.id === puzzleId);
-          if (puzzle) {
-            const stage = puzzle.stages[stageId];
-            if (stage) {
-              const hint = stage.hints ? stage.hints[Object.keys(stage.hints)[0]] : undefined; 
-              if (hint) {
-                showHintMessage(hint.message); 
+          const hintKey = `${puzzleId}_${stageId}`;
+
+          // Check if hint has already been displayed
+          if (!displayedHintsRef.current.has(hintKey)) {
+            const puzzle = puzzlesRef.current.find((p) => p.id === puzzleId);
+            if (puzzle) {
+              const stage = puzzle.stages[stageId];
+              if (stage) {
+                const hint = stage.hints ? stage.hints[Object.keys(stage.hints)[0]] : undefined;
+                if (hint) {
+                  showHintMessage(hint.message);
+                  // Mark hint as displayed
+                  displayedHintsRef.current.add(hintKey);
+                }
               }
             }
           }
         });
       }
     });
-  
+
     timerRef.current.push(unsubscribe);
-  
+
     return () => unsubscribe();
-  }, [puzzles]);  
+  }, [puzzles]);
 
   const showHintMessage = (message: string) => {
     Alert.alert("Hint", message, [{ text: "OK" }], { cancelable: true });
@@ -814,6 +820,7 @@ const PlayerActions: React.FC = () => {
     } catch (error) {
       console.error("Error resetting hint requests:", error);
     }
+    displayedHintsRef.current.clear();
     console.log("RESETED.....")
 
     showAlertDialog({
