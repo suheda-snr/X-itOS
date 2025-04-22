@@ -704,6 +704,7 @@ const PlayerActions: React.FC = () => {
     await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "pieces.piece_2.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "pieces.piece_3.isInteracted": false });
     await updateSensorInFirebase("TW_sign_lights", { isActive: false });
+    await updatePuzzleInFirebase("puzzle_1", "temple_wall", {}, "hint_1", { isShared: false });
     //puzzle 1 stage 2
     await updatePuzzleInFirebase("puzzle_1", "totem", { "isSolved": false });
     await updatePuzzleInFirebase("puzzle_1", "totem", { "actions.isActivated": false });
@@ -714,6 +715,7 @@ const PlayerActions: React.FC = () => {
     await updateSensorInFirebase("TW_door", { isActive: false });
     await updateSensorInFirebase("main_light", { isActive: false });
     await updateSensorInFirebase("table", { isActive: false });
+    await updatePuzzleInFirebase("puzzle_1", "totem", {}, "hint_1", { isShared: false });
     await updatePuzzleStatus("puzzle_1", {"isSolved": false})
     await updatePuzzleInFirebase("puzzle_2", "piece_1", { "actions.isActivated": false });
     //puzzle 2 stage 1
@@ -723,6 +725,7 @@ const PlayerActions: React.FC = () => {
     await updateSensorInFirebase("main_light", { isActive: false });
     await updateSensorInFirebase("red_toplight", { isActive: false });
     await updatePuzzleInFirebase("puzzle_2", "piece_1", { "isSolved": false });
+    await updatePuzzleInFirebase("puzzle_2", "piece_1", {}, "hint_1", { isShared: false });
     await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "actions.isActivated": false });
     await updatePuzzleStatus("puzzle_2", {"isSolved": false})
     //puzzle 3 stage 1
@@ -734,6 +737,7 @@ const PlayerActions: React.FC = () => {
     await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_6.isInteracted": false });
 
     await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "isSolved": false });
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", {}, "hint_1", { isShared: false });
     await updatePuzzleStatus("puzzle_3", {"isSolved": false})
     await updateSensorInFirebase("locker_under_weights", { isActive: false });
     await updatePuzzleInFirebase("puzzle_4", "gears", { "actions.isActivated": false });
@@ -741,21 +745,25 @@ const PlayerActions: React.FC = () => {
     //puzzle 4 stage 1
     await updatePuzzleInFirebase("puzzle_4", "gears", { "pieces.gears.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_4", "gears", { "isSolved": false });
+    await updatePuzzleInFirebase("puzzle_4", "gears", {}, "hint_1", { isShared: false });
     await updatePuzzleInFirebase("puzzle_4", "crank_rotation", { "actions.isActivated": false });
     await updateSensorInFirebase("sliding_door", { isActive: false });
     //puzzle 4 stage 2
     await updatePuzzleInFirebase("puzzle_4", "crank_rotation", { "piece.crank.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_4", "crank_rotation", {}, "hint_1", { isShared: false });
     await updatePuzzleInFirebase("puzzle_5", "insert_ball", { "actions.isActivated": false });
     await updateSensorInFirebase("ball_locker", { isActive: false });
     await updatePuzzleInFirebase("puzzle_4", "crank_rotation", { "isSolved": false });
     await updatePuzzleStatus("puzzle_4", {"isSolved": false})
     //puzzle 5 stage 1
     await updatePuzzleInFirebase("puzzle_5", "insert_ball", { "pieces.ball.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_5", "insert_ball", {}, "hint_1", { isShared: false });
     await updateSensorInFirebase("crank_hole", { isActive: false });
     await updatePuzzleInFirebase("puzzle_5", "crank_rotation_to_get_balls", { "actions.isActivated": false });
     await updatePuzzleInFirebase("puzzle_5", "insert_ball", { "isSolved": false });
     //Puzzle 5 stage 2
     await updatePuzzleInFirebase("puzzle_5", "crank_rotation_to_get_balls", { "pieces.crank.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_5", "crank_rotation_to_get_balls", {}, "hint_1", { isShared: false });
     await updatePuzzleInFirebase("puzzle_6", "weight", { "actions.isActivated": false });
     await updateSensorInFirebase("balls_releasing_mechanism", { isActive: false });
     await updatePuzzleInFirebase("puzzle_5", "crank_rotation_to_get_balls", { "isSolved": false });
@@ -764,6 +772,7 @@ const PlayerActions: React.FC = () => {
     await updatePuzzleInFirebase("puzzle_6", "weight", { "pieces.piece_1.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_6", "weight", { "pieces.piece_2.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_6", "weight", { "pieces.piece_3.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_6", "weight", {}, "hint_1", { isShared: false });
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "actions.isActivated": false });
     await updatePuzzleInFirebase("puzzle_6", "weight", { "isSolved": false });
     await updatePuzzleStatus("puzzle_6", {"isSolved": false})
@@ -771,6 +780,7 @@ const PlayerActions: React.FC = () => {
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "pieces.piece_1.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "pieces.piece_2.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "pieces.piece_3.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_7", "wheels", {}, "hint_1", { isShared: false });
     await updateSensorInFirebase("dog_locker", { isActive: false });
     await updatePuzzleInFirebase("puzzle_8", "altar", { "actions.isActivated": false });
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "isSolved": false });
@@ -779,6 +789,7 @@ const PlayerActions: React.FC = () => {
     await updatePuzzleInFirebase("puzzle_8", "altar", { "pieces.piece_1.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_8", "altar", { "pieces.piece_2.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_8", "altar", { "pieces.piece_3.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_8", "altar", {}, "hint_1", { isShared: false });
     await updateSensorInFirebase("table_lock", { isActive: false });
     await updatePuzzleInFirebase("puzzle_9", "pegs", { "actions.isActivated": false });
     await updatePuzzleInFirebase("puzzle_8", "altar", { "isSolved": false });
@@ -788,12 +799,14 @@ const PlayerActions: React.FC = () => {
     await updatePuzzleInFirebase("puzzle_9", "pegs", { "pieces.piece_2.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_9", "pegs", { "pieces.piece_3.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_9", "pegs", { "isSolved": false });
+    await updatePuzzleInFirebase("puzzle_9", "pegs", {}, "hint_1", { isShared: false });
     //Puzzle 9 stage 2
     await updateSensorInFirebase("skull_placement", { isActive: false });
     await updatePuzzleInFirebase("puzzle_9", "middle_table", { "actions.isActivated": false });
     await updatePuzzleInFirebase("puzzle_9", "middle_table", { "pieces.piece_1.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_9", "middle_table", { "pieces.piece_2.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_9", "middle_table", { "isSolved": false });
+    await updatePuzzleInFirebase("puzzle_9", "middle_table", {}, "hint_1", { isShared: false });
     await updatePuzzleStatus("puzzle_9", {"isSolved": false})
     await updateSensorInFirebase("TW_door", { isActive: false });
     setLoading(false)
