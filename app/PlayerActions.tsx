@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { View, StyleSheet, Animated, PanResponder, Pressable, Text, ScrollView, Image } from "react-native";
 import Svg, { Rect, Circle, Text as SvgText, Line } from "react-native-svg";
 import { Alert } from "react-native";
-import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
+import { doc, updateDoc, collection, onSnapshot, setDoc,  getDoc,  deleteField } from "firebase/firestore";
 import { db } from "./firebase/firebaseConfig";
 
 interface Hint {
@@ -44,6 +44,11 @@ interface Sensor {
   id: string;
   type: string;
   isActive: boolean;
+}
+
+interface HintRequest {
+  puzzleId: string;
+  stageId: string;
 }
 
 const PlayerActions: React.FC = () => {
@@ -183,6 +188,63 @@ const PlayerActions: React.FC = () => {
       await updateDoc(sensorRef, updates);
     } catch (error) {
       console.error("Error updating sensor:", error);
+    }
+  };
+
+  const requestHint = async () => {
+    try {
+      // Find the current active stage (first unsolved, activated stage)
+      let currentPuzzleId: string | null = null;
+      let currentStageId: string | null = null;
+
+      for (const puzzle of puzzlesRef.current) {
+        for (const [stageId, stage] of Object.entries(puzzle.stages)) {
+          if (stage.actions?.isActivated && !stage.isSolved) {
+            currentPuzzleId = puzzle.id;
+            currentStageId = stageId;
+            break;
+          }
+        }
+        if (currentPuzzleId && currentStageId) break;
+      }
+
+      if (!currentPuzzleId || !currentStageId) {
+        showAlertDialog({
+          title: "No Active Stage",
+          message: "No active puzzle stage found. Start the game or progress further to request a hint.",
+        });
+        return;
+      }
+
+      const hintRequestDocRef = doc(db, "hintRequests", "requests");
+      const requestKey = `${currentPuzzleId}_${currentStageId}_${Date.now()}`; // Unique key for the request
+      const hintRequest: HintRequest = {
+        puzzleId: currentPuzzleId,
+        stageId: currentStageId,
+      };
+
+      try {
+        await updateDoc(hintRequestDocRef, {
+          [requestKey]: hintRequest,
+        });
+      } catch (error: any) {
+        if (error.code === "not-found") {
+          await setDoc(hintRequestDocRef, { [requestKey]: hintRequest });
+        } else {
+          throw error;
+        }
+      }
+
+      showAlertDialog({
+        title: "Hint Requested",
+        message: `Hint is request for ${currentPuzzleId} - ${currentStageId}. Please wait for the admin to approve.`,
+      });
+    } catch (error) {
+      console.error("Error requesting hint:", error);
+      showAlertDialog({
+        title: "Error",
+        message: "Failed to request hint. Please try again.",
+      });
     }
   };
 
@@ -689,6 +751,29 @@ const PlayerActions: React.FC = () => {
     await updatePuzzleStatus("puzzle_9", {"isSolved": false})
     await updateSensorInFirebase("TW_door", { isActive: false });
     setLoading(false)
+
+    //delete all field in hint requests collection
+    try {
+      const hintRequestDocRef = doc(db, "hintRequests", "requests");
+      const hintRequestDocSnap = await getDoc(hintRequestDocRef);
+  
+      if (hintRequestDocSnap.exists()) {
+        const fields = hintRequestDocSnap.data();
+        const fieldKeys = Object.keys(fields);
+        
+        if (fieldKeys.length > 0) {
+          // Create an update object to delete all fields
+          const deleteUpdates = fieldKeys.reduce((acc, key) => {
+            acc[key] = deleteField();
+            return acc;
+          }, {} as Record<string, any>);
+  
+          await updateDoc(hintRequestDocRef, deleteUpdates);
+        }
+      }
+    } catch (error) {
+      console.error("Error resetting hint requests:", error);
+    }
     console.log("RESETED.....")
 
     showAlertDialog({
@@ -704,6 +789,10 @@ const PlayerActions: React.FC = () => {
         <Text style={styles.buttonText}>
           {loading ? "Loading..." : "Start"}
         </Text>
+      </Pressable>
+
+      <Pressable style={styles.button} onPress={requestHint}>
+          <Text style={styles.buttonText}>Request Hint</Text>
       </Pressable>
 
       <Pressable style={styles.button} onPressIn={touchStoneWall}>
