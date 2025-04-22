@@ -49,6 +49,7 @@ interface Sensor {
 interface HintRequest {
   puzzleId: string;
   stageId: string;
+  state: string;
 }
 
 const PlayerActions: React.FC = () => {
@@ -221,6 +222,7 @@ const PlayerActions: React.FC = () => {
       const hintRequest: HintRequest = {
         puzzleId: currentPuzzleId,
         stageId: currentStageId,
+        state: "pending",
       };
 
       try {
