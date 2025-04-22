@@ -19,32 +19,32 @@ export default function RootLayout() {
   return (
     <>
       <Stack screenOptions={{
-    headerStyle: {
-      backgroundColor: "transparent", // Change header background color
-      ...Platform.select({
-        android: { elevation: 1 }, // Remove shadow on Android
-        ios: { shadowOpacity: 0 }, // Remove shadow on iOS
-      }),
-      
-    },
-    headerTintColor: "#333333", // Change text color
-    headerTitleStyle: {
-      fontSize: 16, // Reduce title font size
-    },
-    headerBackVisible: true, // Hide back button 
+        headerStyle: {
+          backgroundColor: "transparent", // Change header background color
+          ...Platform.select({
+            android: { elevation: 1 }, // Remove shadow on Android
+            ios: { shadowOpacity: 0 }, // Remove shadow on iOS
+          }),
 
-  }}>
-        <Stack.Screen name="index" options={{ title: "Login" }} />
-        <Stack.Screen name="welcome" options={{ title: "Welcome" }} />
-        <Stack.Screen name="[teaminfo]" options={{ title: "Team info" }} />
-        <Stack.Screen name="playersinfoadding" options={{ title: "Player Info Adding" }} />
-        <Stack.Screen name="passcode" options={{ title: "Enter Passcode" }} />
-        <Stack.Screen name="room/index" options={{ title: "Room Selection", headerShown: false, }} />
-        <Stack.Screen name="room/[id]" options={{ title: "Room Details" }} />
-        <Stack.Screen name="room/map" options={{ title: "Map"}} />
-        <Stack.Screen name="/QRScanner/TicketQR" options={{ title: "Ticket Scanning" }} />
-        <Stack.Screen name="/QRScanner/PersonalQR" options={{ title: "Personal QR" }} />
-        <Stack.Screen name="GameStatistics/[TeamStats]" options={{ title: "Team Statistics" }} />
+        },
+        headerTintColor: "#333333", // Change text color
+        headerTitleStyle: {
+          fontSize: 16, // Reduce title font size
+        },
+        headerBackVisible: true, // Hide back button 
+
+      }}>
+        <Stack.Screen name="index" options={{ title: "" }} />
+        <Stack.Screen name="welcome" options={{ title: "" }} />
+        <Stack.Screen name="[teaminfo]" options={{ title: "" }} />
+        <Stack.Screen name="playersinfoadding" options={{ title: "" }} />
+        <Stack.Screen name="passcode" options={{ title: "" }} />
+        <Stack.Screen name="room/index" options={{ title: "", headerShown: false, }} />
+        <Stack.Screen name="room/[id]" options={{ title: "" }} />
+        <Stack.Screen name="room/map" options={{ title: "" }} />
+        <Stack.Screen name="/QRScanner/TicketQR" options={{ title: "" }} />
+        <Stack.Screen name="/QRScanner/PersonalQR" options={{ title: "" }} />
+        <Stack.Screen name="GameStatistics/[TeamStats]" options={{ title: "" }} />
       </Stack>
     </>
   );
