@@ -22,7 +22,7 @@ export default function LoginScreen() {
         const token = await login(email, password);
         if (token) {
           await getCompanyName();
-          router.replace('/welcome');
+          router.replace('/PlayerActions');
         } else {
           console.log('Login failed, no token received.');
         }
