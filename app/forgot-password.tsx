@@ -189,7 +189,7 @@ export default function ForgotPasswordScreen() {
       Alert.alert('Success', message);
       router.push('/');  // Navigate back to login screen
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to send reset email.');
+      Alert.alert('Error', (error instanceof Error ? error.message : 'Failed to send reset email.'));
     }
     setLoading(false);
   };

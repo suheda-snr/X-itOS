@@ -62,10 +62,7 @@ const PasscodeScreen: React.FC = () => {
       source={{ uri: 'https://images.unsplash.com/photo-1585951237318-9ea5e175b891?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80' }}
       style={commonStyles.container}
     >
-      <LinearGradient
-        colors={[colors.dark1, colors.dark2]}
-        style={commonStyles.overlay}
-      >
+     
         <View style={commonStyles.header}></View>
 
         <View style={[commonStyles.content, { justifyContent: 'center' }]}>
@@ -99,7 +96,7 @@ const PasscodeScreen: React.FC = () => {
             />
           </View>
         </View>
-      </LinearGradient>
+   
     </ImageBackground>
   );
 };
