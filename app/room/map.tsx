@@ -817,9 +817,8 @@ const Map: React.FC = () => {
                       <Text style={styles.changeTimestamp}>
                         {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                       </Text>
-                      <Text>Type: {entry.type}</Text>
-                      <Text>ID: {entry.id}</Text>
-                      <Text>Changes: {JSON.stringify(entry.changes, null, 2)}</Text>
+                      <Text>Name: {entry.type === 'sensor' ? entry.changes.name : `Puzzle ${entry.id}`}</Text>
+                      <Text>Status: {entry.type === 'sensor' ? (entry.changes.isActive ? 'Activated' : 'Deactivated') : (entry.changes.isSolved ? 'Solved' : 'Unsolved')}</Text>
                     </View>
                   ))
                 )}
