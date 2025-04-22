@@ -151,6 +151,44 @@ const PlayerActions: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const hintRequestsRef = doc(db, "hintRequests", "requests");
+  
+    const unsubscribe = onSnapshot(hintRequestsRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const approvedRequests = Object.entries(data).filter(
+          ([_, request]: [string, any]) => request.state === "approved"
+        );
+  
+        approvedRequests.forEach(([key, request]) => {
+          const { puzzleId, stageId } = request;
+  
+          // Find the corresponding puzzle and stage
+          const puzzle = puzzlesRef.current.find((p) => p.id === puzzleId);
+          if (puzzle) {
+            const stage = puzzle.stages[stageId];
+            if (stage) {
+              const hint = stage.hints ? stage.hints[Object.keys(stage.hints)[0]] : undefined; 
+              if (hint) {
+                showHintMessage(hint.message); 
+              }
+            }
+          }
+        });
+      }
+    });
+  
+    timerRef.current.push(unsubscribe);
+  
+    return () => unsubscribe();
+  }, [puzzles]);  
+
+  const showHintMessage = (message: string) => {
+    Alert.alert("Hint", message, [{ text: "OK" }], { cancelable: true });
+  };
+
+
   const updatePuzzleStatus = async (
     puzzleId: string,
     updates: { [key: string]: any },
