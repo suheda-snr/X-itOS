@@ -823,7 +823,7 @@ const Map: React.FC = () => {
                   ))
                 )}
               </ScrollView>
-              <Button title="Close" onPress={toggleChangeLog} />
+              <Button title="Close" color="gray" onPress={toggleChangeLog} />
             </View>
           </View>
         </Modal>
