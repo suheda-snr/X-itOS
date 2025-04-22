@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { View, StyleSheet, Animated, PanResponder, Pressable, Text, Button, Image, Modal, ScrollView, ImageBackground, FlatList, Switch } from "react-native";
 import Svg, { Rect, Circle, Text as SvgText, Line, Polygon } from "react-native-svg";
 import { Alert } from "react-native";
-import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
+import { doc, updateDoc, collection, onSnapshot, getDocs } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 import { useCompanyStore } from '@/stateStore/companyStore';
 import { useGameStore } from '@/stateStore/gameStore';
@@ -50,6 +50,12 @@ interface ChangeLogEntry {
   type: 'puzzle' | 'sensor';
   id: string;
   changes: Record<string, any>;
+}
+
+interface HintRequest {
+  puzzleId: string;
+  stageId: string;
+  state: string;
 }
 
 const Map: React.FC = () => {
@@ -289,6 +295,67 @@ const Map: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const hintRequestsRef = doc(db, "hintRequests", "requests");
+  
+    const unsubscribe = onSnapshot(hintRequestsRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const pendingEntries = Object.entries(data).filter(
+          ([_, request]: [string, any]) => request.state === "pending"
+        );
+  
+        pendingEntries.forEach(([key, request]) => {
+          Alert.alert(
+            "Hint Request",
+            `A hint request has been made for puzzle ${request.puzzleId} in stage ${request.stageId}.`,
+            [
+              {
+                text: "Decline",
+                onPress: async () => {
+                  await updateDoc(hintRequestsRef, {
+                    [`${key}.state`]: "declined"
+                  });
+                },
+                style: "cancel",
+              },
+              {
+                text: "Approve",
+                onPress: async () => {
+                  await updateDoc(hintRequestsRef, {
+                    [`${key}.state`]: "approved"
+                  });
+
+                  const hintsCollectionRef = collection(
+                    db,
+                    "puzzles",
+                    request.puzzleId,
+                    "stages",
+                    request.stageId,
+                    "hints"
+                  );
+
+                  const hintDocsSnap = await getDocs(hintsCollectionRef);
+
+                  const updatePromises = hintDocsSnap.docs.map((docSnap) =>
+                    updateDoc(docSnap.ref, { isShared: true })
+                  );
+
+                  await Promise.all(updatePromises);
+                }
+              },
+            ],
+            { cancelable: false }
+          );
+        });
+      }
+    });
+  
+    timerRef.current.push(unsubscribe);
+  
+    return () => unsubscribe();
+  }, []);  
+  
   const updatePuzzleInFirebase = async (
     puzzleId: string,
     stageId: string,
