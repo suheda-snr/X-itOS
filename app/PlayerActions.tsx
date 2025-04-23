@@ -162,6 +162,32 @@ const PlayerActions: React.FC = () => {
           ([_, request]: [string, any]) => request.state === "approved"
         );
 
+        const declinedRequests = Object.entries(data).filter(
+          ([_, request]: [string, any]) => request.state === "declined"
+        );
+
+        declinedRequests.forEach(([key, request]) => {
+          //show an alert saying that the hint was declined
+          const { puzzleId, stageId } = request;
+          const hintKey = `${puzzleId}_${stageId}`;
+          const puzzle = puzzlesRef.current.find((p) => p.id === puzzleId);
+          if (puzzle) {
+            const stage = puzzle.stages[stageId];
+            if (stage) {
+              const hint = stage.hints ? stage.hints[Object.keys(stage.hints)[0]] : undefined;
+              if (hint) {
+                showAlertDialog({
+                  title: "Hint Declined",
+                  message: `Your request is declined. Try to think more about the puzzle!`,
+                });
+                // Mark hint as displayed
+                displayedHintsRef.current.add(hintKey);
+              }
+            }
+          }
+        } 
+        );
+
         approvedRequests.forEach(([key, request]) => {
           const { puzzleId, stageId } = request;
           const hintKey = `${puzzleId}_${stageId}`;
