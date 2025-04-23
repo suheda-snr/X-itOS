@@ -196,26 +196,50 @@ const PlayerActions: React.FC = () => {
   };
 
   useHintScheduler(gameStarted, [
-    { after: 0.5, action: () => hint1() },
-    { after: 5, action: () => console.log('⏱️ Прошло 5 минут — вторая подсказка!') },
-    { after: 10, action: () => console.log('⏱️ Прошло 10 минут — третья подсказка!') },
+    { after: 0.2, action: async() => showHint("puzzle_1", "temple_wall", "hint_2", 0) },
+    { after: 0.4, action: async() => showHint("puzzle_1", "totem", "hint_3", 0)},
+    { after: 0.6, action: async() => showHint("puzzle_2", "piece_1", "hint_1", 1) },
+    { after: 0.8, action: async() => showHint("puzzle_3", "wall_buttons", "hint_1", 2)},
+    { after: 1, action: async() => showHint("puzzle_4", "gears", "hint_1", 3) },
+    { after: 1.2, action: async() => showHint("puzzle_4", "crank_rotation", "hint_1", 3)},
+    { after: 1.4, action: async() => showHint("puzzle_5", "insert_ball", "hint_1", 4) },
+    { after: 1.6, action: async() => showHint("puzzle_5", "crank_rotation_to_get_balls", "hint_1", 4)},
+    { after: 1.8, action: async() => showHint("puzzle_6", "weight", "hint_1", 5)},
+    { after: 2, action: async() => showHint("puzzle_7", "wheels", "hint_1", 6) },
+    { after: 2.2, action: async() => showHint("puzzle_8", "altar", "hint_1", 7)},
+    { after: 2.4, action: async() => showHint("puzzle_9", "pegs", "hint_1", 8) },
+    { after: 2.6, action: async() => showHint("puzzle_9", "middle_table", "hint_1", 8)},
   ]);
 
-  const hint1 = async() => {
-    await updatePuzzleInFirebase("puzzle_1", "temple_wall", {}, "hint_1", { isShared: true });
+  const showHint = async (
+    puzzleId: string,
+    stageId: string,
+    hintId: string,
+    puzzleOrder: number
+  ) => {
 
-    const hint1_message = puzzlesRef.current[0]?.stages?.temple_wall?.hints?.["hint_1"]?.["message"];
+
+    if(isPreviousStepCompleted(stageId, puzzleOrder, true)){
+      console.log("The stage completed, hint is not shown")
+      return
+    }
+
+    await updatePuzzleInFirebase(puzzleId, stageId, {}, hintId, { isShared: true });
+  
+    const puzzle = puzzlesRef.current.find((p) => p.id === puzzleId);
+    const hintMessage = puzzle?.stages?.[stageId]?.hints?.[hintId]?.["message"] 
+    console.log("Auto hint shown")
 
     showAlertDialog({
       title: "Hint!",
-      message: `${hint1_message}`,
+      message: `${hintMessage ?? "No message found"}`,
     });
-  }
+  };
 
-  const isPreviousStepCompleted = (stageName: string, puzzleOrder: number) => {
+  const isPreviousStepCompleted = (stageName: string, puzzleOrder: number, isHint?: boolean) => {
     const isCurrentPuzzleSolved = puzzlesRef.current[puzzleOrder]?.stages?.[stageName]?.isSolved;
 
-    if(!isCurrentPuzzleSolved){
+    if(!isCurrentPuzzleSolved && isHint == undefined){
       showAlertDialog({
         title: "Warning!",
         message: "You can not proceed to the next step of the game without completing the previous one!",
@@ -253,11 +277,6 @@ const PlayerActions: React.FC = () => {
         const templeWallInteractedPiece1 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
         const templeWallInteractedPiece2 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_2?.isInteracted;
         const templeWallInteractedPiece3 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_3?.isInteracted;
-
-        console.log("CHECKING...")
-        console.log("Automation - templeWallInteractedPiece1:", templeWallInteractedPiece1);
-        console.log("Automation - templeWallInteractedPiece2:", templeWallInteractedPiece2);
-        console.log("Automation - templeWallInteractedPiece2:", templeWallInteractedPiece2);
 
         if (templeWallInteractedPiece1 && templeWallInteractedPiece2 && templeWallInteractedPiece3) {
           await updateSensorInFirebase("TW_sign_lights", { isActive: true });
