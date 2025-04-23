@@ -566,15 +566,6 @@ const Map: React.FC = () => {
                   {puzzles[0].stages["temple_wall"] && (
                     <>
                       <Rect x={40} y={350} width={150} height={30} fill="transparent" stroke="black" strokeWidth={1} />
-                      {/* <Circle
-                      cx={80}
-                      cy={365}
-                      r={12}
-                      fill={puzzles[0].stages["temple_wall"].pieces?.piece_1?.isInteracted ? "green" : "transparent"}
-                      stroke="black"
-                      strokeWidth={1}
-                    />
-                    <SvgText x={72} y={369} fontSize={10} fill="black">P.1.1</SvgText> */}
 
                       <Circle
                         cx={120}
@@ -589,22 +580,13 @@ const Map: React.FC = () => {
                       <SvgText x={113} y={369} fontSize={12}>S.1.</SvgText>
 
                       <Rect x={380} y={350} width={100} height={30} fill="transparent" stroke="black" strokeWidth={1} />
-                      {/* <Circle
-                      cx={410}
-                      cy={365}
-                      r={12}
-                      fill={puzzles[0].stages["temple_wall"].pieces?.piece_2?.isInteracted ? "green" : "transparent"}
-                      stroke="black"
-                      strokeWidth={1}
-                    />
-                    <SvgText x={400} y={369} fontSize={10} fill="black">P.1.1</SvgText> */}
 
                       <Circle
                         cx={450}
                         cy={365}
                         r={12}
                         fill={
-                          sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "green" : "transparent"
+                          sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "pink" : "yellow"
                         }
                         stroke="black"
                         strokeWidth={1}
@@ -619,11 +601,10 @@ const Map: React.FC = () => {
                         cx={440}
                         cy={440}
                         r={30}
-                        fill={puzzles[0].stages["totem"].pieces?.piece_1?.isInteracted ? "green" : "transparent"}
+                        fill={puzzles[0].stages["totem"].pieces?.piece_1?.isInteracted ? "pink" : "yellow"}
                         stroke="black"
                         strokeWidth={1}
                       />
-                      {/* <SvgText x={425} y={448} fontSize={14} fill="black">P.1.2.</SvgText> */}
 
                       <Line
                         x1={250}
@@ -634,17 +615,6 @@ const Map: React.FC = () => {
                         strokeWidth={5}
                       />
                       <SvgText x={310} y={365} fontSize={12}>S.2.</SvgText>
-                    </>
-                  )}
-
-                  {puzzles[1].stages["piece_1"] && (
-                    <>
-                      {/* <Rect x={70} y={465} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "transparent"} stroke="black" strokeWidth={1} />
-                    <SvgText x={75} y={479} fontSize={10} fill="black">P.2.1</SvgText> */}
-                      {/* <Rect x={470} y={270} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "transparent"} stroke="black" strokeWidth={1} />
-                    <SvgText x={475} y={284} fontSize={10} fill="black">P.2.2</SvgText> */}
-                      {/* <Rect x={280} y={95} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "transparent"} stroke="black" strokeWidth={1} />
-                    <SvgText x={285} y={109} fontSize={10} fill="black">P.2.3</SvgText> */}
                     </>
                   )}
 
@@ -678,43 +648,6 @@ const Map: React.FC = () => {
                   )}
                 </>
               )}
-
-
-              {/* Triangles above table with labels and color change based on puzzle completion */}
-              {/* {["Left", "Center", "Right"].map((label, index) => {
-  const cx = 10; // X-coordinate for all triangles (you can adjust this as needed)
-  let cy;
-  const puzzleState = puzzles[2]?.stages["wall_buttons"].pieces?.[`button_${index + 1}`]?.isInteracted;
-
-  // Adjust Y based on which triangle (Left, Center, Right)
-  if (label === "Left") {
-    cy = 105;
-  } else if (label === "Center") {
-    cy = 90;
-  } else if (label === "Right") {
-    cy = 75;
-  } */}
-
-              {/* return (
-    <React.Fragment key={label}>
-      {/* Triangle */}
-              {/* <Polygon
-        points={`${cx},${cy ?? 0} ${cx - 9},${(cy ?? 0) - 5} ${cx - 9},${(cy ?? 0) + 5}`} // Triangular shape
-        fill={puzzleState ? "green" : "lightgray"} // Change color based on puzzle completion
-        stroke="black"
-        strokeWidth={1}
-      /> */}
-
-              {/* Label */}
-              {/* <SvgText x={cx - 2} y={(cy ?? 0) + 4} fontSize={8} fill="black">
-        {label[0]} {/* Use the first letter for the label (Left = L, Center = C, etc.) */}
-              {/* </SvgText>  */}
-              {/* </React.Fragment>
-  );  */}
-              {/* })} */}
-
-
-
 
               {/* Rectangle above table - First Set */}
               <Rect
