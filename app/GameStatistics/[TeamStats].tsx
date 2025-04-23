@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Leaderboard from './Leaderboard';
 import commonStyles, { colors } from '../../styles/common';
 import qrScannerStyles from '../../styles/qrScannerStyles';
+import { useGameStore } from '@/stateStore/gameStore';
 
 interface TeamStats {
     teamName: string;
@@ -34,14 +35,15 @@ const TeamStats = () => {
     const [shareDecision, setShareDecision] = useState<boolean | null>(null);
     const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
     const [isCompleted, setIscompleted] = useState<boolean>(true);
+    const gameData = useGameStore(state => state.gameData)
 
     const handleSharePress = () => {
         setShareDecision(true);
         console.log('Sharing score:', {
-            team: teamStatsData.teamName,
+            team: gameData?.teamName,
             game: teamStatsData.gameName,
             score: teamStatsData.totalScore,
-            hints: teamStatsData.hintsUsed,
+            hints: useGameStore.getState().hintsUsed,
             timeTaken,
         });
     };
@@ -63,7 +65,7 @@ const TeamStats = () => {
             <View style={[commonStyles.content]}>
                 <View style={[qrScannerStyles.card]}>
                     <Text style={[commonStyles.title, { textTransform: 'uppercase' }]}>
-                        {teamStatsData.teamName} STATISTICS
+                        {gameData?.teamName} STATISTICS
                     </Text>
 
                     {isCompleted ? (
@@ -72,10 +74,10 @@ const TeamStats = () => {
                                 textTransform: 'uppercase',
                                 fontWeight: 'bold'
                             }]}>
-                                CONGRATULATIONS {teamStatsData.teamName}!🎉
+                                CONGRATULATIONS {gameData?.teamName}!🎉
                             </Text>
                             <Text style={commonStyles.subtitle}>
-                                '{teamStatsData.gameName}' completed in {Math.floor(timeTaken)} minutes
+                                '{teamStatsData.gameName}' completed in {useGameStore.getState().timeOfGame} seconds
                             </Text>
 
                             <View style={{ marginVertical: 20 }}>
@@ -88,7 +90,7 @@ const TeamStats = () => {
                                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
                                     <Text style={{ fontSize: 18, color: colors.textSecondary, marginRight: 10, width: 20 }}>💡</Text>
                                 <Text style={commonStyles.label}>
-                                    {teamStatsData.hintsUsed} hints used
+                                    {useGameStore.getState().hintsUsed} hints used
                                 </Text>
                                 </View>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>

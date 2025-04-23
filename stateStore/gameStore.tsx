@@ -9,8 +9,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     isGameSet: false,
     playersData: null,
     adminJwt: null,
+    hintsUsed: null,
     displayPlayers: [],
     bookingDetails: null,
+    timeOfGame: undefined,
     setGameData: (gameData: Game) => set({ gameData: gameData }),
     setAdminJwt: (adminJwt: string) => set({ adminJwt: adminJwt }),
     resetGameData: () => set({ gameData: null }),
@@ -34,6 +36,8 @@ export const useGameStore = create<GameState>((set, get) => ({
                     ? state.displayPlayers.map((p) => (p.id === player.id ? player : p)) // Update existing
                     : [...state.displayPlayers, player] // Add new
                 : [player], // Initialize array if empty
-        })),
-    setBookingDetails: (booking: Booking | null) => set({ bookingDetails: booking })
-}));
+            })),
+    setBookingDetails: (booking: Booking | null) => set({bookingDetails: booking}),
+    setHintsUsed: (hints: number) => set({hintsUsed: hints}),
+    setTimeOfGame: (timeInSeconds: number | undefined) => set({timeOfGame: timeInSeconds})
+    }));
