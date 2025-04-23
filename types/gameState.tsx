@@ -10,6 +10,7 @@ export interface GameState {
     bookingDetails: Booking | null
     hintsUsed: number | null
     adminJwt: string | null
+    timeOfGame: number | undefined
     setGameData: (gameData: Game) => void;
     resetGameData: () => void;
     setIsGameSet: (value: boolean) => void;
@@ -19,4 +20,5 @@ export interface GameState {
     setBookingDetails: (booking: Booking | null) => void
     setAdminJwt: (adminJwt: string) => void
     setHintsUsed: (hints: number) => void
+    setTimeOfGame: (timeInSeconds: number) => void
 }

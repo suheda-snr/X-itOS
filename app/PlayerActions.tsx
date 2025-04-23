@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { View, StyleSheet, Animated, PanResponder, Pressable, Text, ScrollView, Image } from "react-native";
 import Svg, { Rect, Circle, Text as SvgText, Line } from "react-native-svg";
 import { Alert } from "react-native";
+import { useRouter } from "expo-router";
 import GameTimer, {GameTimerHandle} from "@/components/GameTimer";
 import { doc, updateDoc, collection, onSnapshot, setDoc,  getDoc,  deleteField } from "firebase/firestore";
 import { db } from "./firebase/firebaseConfig";
@@ -57,6 +58,7 @@ interface HintRequest {
 }
 
 const PlayerActions: React.FC = () => {
+  const router = useRouter();
   const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
   const puzzlesRef = useRef<Puzzle[]>([]);
   const sensorsRef = useRef<Sensor[]>([]);
@@ -69,6 +71,8 @@ const PlayerActions: React.FC = () => {
   const hintsUsed = useGameStore(state => state.hintsUsed)
   const setHintsUsed = useGameStore(state => state.setHintsUsed)
   const displayedHintsRef = useRef<Set<string>>(new Set());
+  const timeOfGame = useGameStore(state => state.timeOfGame)
+  const setTimeOfGame = useGameStore(state => state.setTimeOfGame)
 
   useEffect(() => {
     puzzlesRef.current = puzzles;
@@ -210,6 +214,8 @@ const PlayerActions: React.FC = () => {
                 if (hint) {
                   showHintMessage(hint.message);
                   // Mark hint as displayed
+                  let newHintCount = (hintsUsed ?? 0) + 1
+                  setHintsUsed(newHintCount)
                   displayedHintsRef.current.add(hintKey);
                 }
               }
@@ -333,8 +339,8 @@ const PlayerActions: React.FC = () => {
   };
 
   useHintScheduler(gameStarted, [
-    { after: 0.2, action: async() => showHint("puzzle_1", "temple_wall", "hint_2", 0) },
-    { after: 0.4, action: async() => showHint("puzzle_1", "totem", "hint_3", 0)},
+    { after: 0.2, action: async() => showHint("puzzle_1", "temple_wall", "hint_1", 0) },
+    { after: 0.4, action: async() => showHint("puzzle_1", "totem", "hint_1", 0)},
     { after: 0.6, action: async() => showHint("puzzle_2", "piece_1", "hint_1", 1) },
     { after: 0.8, action: async() => showHint("puzzle_3", "wall_buttons", "hint_1", 2)},
     { after: 1, action: async() => showHint("puzzle_4", "gears", "hint_1", 3) },
@@ -354,8 +360,6 @@ const PlayerActions: React.FC = () => {
     hintId: string,
     puzzleOrder: number
   ) => {
-
-
     if(isPreviousStepCompleted(stageId, puzzleOrder, true)){
       console.log("The stage completed, hint is not shown")
       return
@@ -811,8 +815,14 @@ const PlayerActions: React.FC = () => {
           const gameTime = getElapsed()
           showAlertDialog({
             title: "Puzzle 9 stage 2 solved",
-            message: `Skull replaced, door opened. Game completed in ${gameTime} seconds!`,
+            message: `Skull replaced, door opened. Game completed in ${gameTime} seconds! You will be redirected to the team statistics in 3 seconds...`,
           });
+          const finalTime = getElapsed()
+          setTimeOfGame(finalTime ?? 0)
+
+          setTimeout(() => {
+            navigateToStatistics();
+          }, 3000); 
         }
   }
 
@@ -820,6 +830,8 @@ const PlayerActions: React.FC = () => {
     console.log("RESETTING.....")
     setLoading(true)
     setGameStarted(false)
+    setTimeOfGame(0)
+    setHintsUsed(0)
     timerGameRef.current?.stop();
     //puzzle 1 stage 1
     await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "isSolved": false });
@@ -965,6 +977,10 @@ const PlayerActions: React.FC = () => {
       message: "Reseted",
     });
   }
+  
+  const navigateToStatistics = () => {
+    router.push('/GameStatistics/[TeamStats]')
+  }
 
   return (
     <View style={styles.container}>
@@ -1067,6 +1083,12 @@ const PlayerActions: React.FC = () => {
       <Pressable style={styles.button} onPressIn={resetSensorsAndPuzzles}>
         <Text style={styles.buttonText}>
           {loading ? "Loading..." : "Reset"}
+        </Text>
+      </Pressable>
+
+      <Pressable style={styles.button} onPressIn={navigateToStatistics}>
+        <Text style={styles.buttonText}>
+          Go to team statistics
         </Text>
       </Pressable>
 

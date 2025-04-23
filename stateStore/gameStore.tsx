@@ -12,6 +12,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     hintsUsed: null,
     displayPlayers: [],
     bookingDetails: null,
+    timeOfGame: undefined,
     setGameData: (gameData: Game) => set({ gameData: gameData }),
     setAdminJwt: (adminJwt: string) => set({ adminJwt: adminJwt }),
     resetGameData: () => set({ gameData: null }),
@@ -37,5 +38,6 @@ export const useGameStore = create<GameState>((set, get) => ({
                 : [player], // Initialize array if empty
             })),
     setBookingDetails: (booking: Booking | null) => set({bookingDetails: booking}),
-    setHintsUsed: (hints: number) => set({hintsUsed: hints})
+    setHintsUsed: (hints: number) => set({hintsUsed: hints}),
+    setTimeOfGame: (timeInSeconds: number | undefined) => set({timeOfGame: timeInSeconds})
     }));
