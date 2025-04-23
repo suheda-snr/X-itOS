@@ -459,14 +459,6 @@ const Map: React.FC = () => {
       message: `Game started for ${teamName} team! Temple wall action activated.`,
     });
 
-    const puzzleId = puzzles[0]?.id || "puzzle_1";
-    let stageId = "temple_wall";
-
-    updatePuzzleInFirebase(puzzleId, stageId, {
-      "actions.isActivated": true,
-    });
-
-
   }
 
   const panResponder = useRef(
