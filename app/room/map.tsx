@@ -572,7 +572,7 @@ const Map: React.FC = () => {
                         cy={365}
                         r={12}
                         fill={
-                          sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "green" : "transparent"
+                          sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "yellow" : "pink"
                         }
                         stroke="black"
                         strokeWidth={1}
@@ -586,7 +586,7 @@ const Map: React.FC = () => {
                         cy={365}
                         r={12}
                         fill={
-                          sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "pink" : "yellow"
+                          sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "yellow" : "pink"
                         }
                         stroke="black"
                         strokeWidth={1}
@@ -597,14 +597,14 @@ const Map: React.FC = () => {
 
                   {puzzles[0].stages["totem"] && (
                     <>
-                      <Circle
+                      {/* <Circle
                         cx={440}
                         cy={440}
                         r={30}
-                        fill={puzzles[0].stages["totem"].pieces?.piece_1?.isInteracted ? "pink" : "yellow"}
+                        fill={puzzles[0].stages["totem"].pieces?.piece_1?.isInteracted ? "yellow" : "pink"}
                         stroke="black"
                         strokeWidth={1}
-                      />
+                      /> */}
 
                       <Line
                         x1={250}
@@ -630,7 +630,7 @@ const Map: React.FC = () => {
                               cx={cx}
                               cy={cy}
                               r={8}
-                              fill={puzzles[2].stages["wall_buttons"].pieces?.[button]?.isInteracted ? "green" : "transparent"}
+                              fill={puzzles[2].stages["wall_buttons"].pieces?.[button]?.isInteracted ? "yellow" : "pink"}
                               stroke="black"
                               strokeWidth={1}
                             />
