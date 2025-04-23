@@ -639,3 +639,55 @@ export const endGameAndUpdate = async (gameId: string, roomId: string): Promise<
         throw error;
     }
 };
+
+export const postStats = async (gameId: string, hintsUsed: number) => {
+    try {
+        const payload = {
+            hintsUsed: hintsUsed,
+            gameId: gameId,
+        };
+
+        const response = await fetch(`${BASE_URL}/api/statistic/create`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        })
+
+        const resp = await response.json()
+        console.log("STATS RESP: ")
+        console.log(resp)
+        return resp
+    } catch (error) {
+        console.log("Error getting user data from QR")
+        console.log(error)
+    }
+}
+
+export const getStats = async (gameId: string) => {
+    const jwtCompany = useAuthStore.getState().jwtCompany;
+
+    if (!jwtCompany) {
+        console.error('JWT token not found. User is not authenticated.');
+        throw new Error('Unauthenticated');
+    }
+
+    try {
+        const response = await fetch(`${BASE_URL}/api/statistic/${gameId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtCompany}`,
+            },
+        })
+
+        const resp = await response.json()
+        console.log("STATS GET: ")
+        console.log(resp)
+        return resp
+    } catch (error) {
+        console.log("Error getting user data from QR")
+        console.log(error)
+    }
+}

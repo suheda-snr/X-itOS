@@ -81,12 +81,12 @@ const TeamStats = () => {
                             </Text>
 
                             <View style={{ marginVertical: 20 }}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+                                {/* <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
                                     <Text style={{ fontSize: 18, color: colors.textSecondary, marginRight: 10, width: 20 }}>⏱</Text>
                                     <Text style={commonStyles.label}>
                                         {Math.floor(timeLeft)} minutes left
                                     </Text>
-                                </View>
+                                </View> */}
                                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
                                     <Text style={{ fontSize: 18, color: colors.textSecondary, marginRight: 10, width: 20 }}>💡</Text>
                                 <Text style={commonStyles.label}>

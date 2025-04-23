@@ -9,6 +9,7 @@ import { db } from "./firebase/firebaseConfig";
 import { useCompanyStore } from "@/stateStore/companyStore";
 import { useHintScheduler } from "@/utils/useHintScheduler";
 import { useGameStore } from "@/stateStore/gameStore";
+import { endGameAndUpdate, getStats, postStats, startGameAndBooking } from "@/api/gameApi";
 
 interface Hint {
   message: string;
@@ -174,6 +175,11 @@ const PlayerActions: React.FC = () => {
           ([_, request]: [string, any]) => request.state === "approved"
         );
 
+        // if(approvedRequests.length >= 0){
+        //   const currentHintsUsed = useGameStore.getState().hintsUsed;
+        //   setHintsUsed((currentHintsUsed ?? 0) + 1);
+        // }
+
         const declinedRequests = Object.entries(data).filter(
           ([_, request]: [string, any]) => request.state === "declined"
         );
@@ -214,8 +220,8 @@ const PlayerActions: React.FC = () => {
                 if (hint) {
                   showHintMessage(hint.message);
                   // Mark hint as displayed
-                  let newHintCount = (hintsUsed ?? 0) + 1
-                  setHintsUsed(newHintCount)
+                  const currentHintsUsed = useGameStore.getState().hintsUsed;
+                  setHintsUsed((currentHintsUsed ?? 0) + 1);
                   displayedHintsRef.current.add(hintKey);
                 }
               }
@@ -339,19 +345,19 @@ const PlayerActions: React.FC = () => {
   };
 
   useHintScheduler(gameStarted, [
-    { after: 0.2, action: async() => showHint("puzzle_1", "temple_wall", "hint_1", 0) },
-    { after: 0.4, action: async() => showHint("puzzle_1", "totem", "hint_1", 0)},
-    { after: 0.6, action: async() => showHint("puzzle_2", "piece_1", "hint_1", 1) },
-    { after: 0.8, action: async() => showHint("puzzle_3", "wall_buttons", "hint_1", 2)},
-    { after: 1, action: async() => showHint("puzzle_4", "gears", "hint_1", 3) },
-    { after: 1.2, action: async() => showHint("puzzle_4", "crank_rotation", "hint_1", 3)},
-    { after: 1.4, action: async() => showHint("puzzle_5", "insert_ball", "hint_1", 4) },
-    { after: 1.6, action: async() => showHint("puzzle_5", "crank_rotation_to_get_balls", "hint_1", 4)},
-    { after: 1.8, action: async() => showHint("puzzle_6", "weight", "hint_1", 5)},
-    { after: 2, action: async() => showHint("puzzle_7", "wheels", "hint_1", 6) },
-    { after: 2.2, action: async() => showHint("puzzle_8", "altar", "hint_1", 7)},
-    { after: 2.4, action: async() => showHint("puzzle_9", "pegs", "hint_1", 8) },
-    { after: 2.6, action: async() => showHint("puzzle_9", "middle_table", "hint_1", 8)},
+    { after: 0.5, action: async() => showHint("puzzle_1", "temple_wall", "hint_1", 0) },
+    { after: 1, action: async() => showHint("puzzle_1", "totem", "hint_1", 0)},
+    // { after: 0.6, action: async() => showHint("puzzle_2", "piece_1", "hint_1", 1) },
+    // { after: 0.8, action: async() => showHint("puzzle_3", "wall_buttons", "hint_1", 2)},
+    // { after: 1, action: async() => showHint("puzzle_4", "gears", "hint_1", 3) },
+    // { after: 1.2, action: async() => showHint("puzzle_4", "crank_rotation", "hint_1", 3)},
+    // { after: 1.4, action: async() => showHint("puzzle_5", "insert_ball", "hint_1", 4) },
+    // { after: 1.6, action: async() => showHint("puzzle_5", "crank_rotation_to_get_balls", "hint_1", 4)},
+    // { after: 1.8, action: async() => showHint("puzzle_6", "weight", "hint_1", 5)},
+    // { after: 2, action: async() => showHint("puzzle_7", "wheels", "hint_1", 6) },
+    // { after: 2.2, action: async() => showHint("puzzle_8", "altar", "hint_1", 7)},
+    // { after: 2.4, action: async() => showHint("puzzle_9", "pegs", "hint_1", 8) },
+    // { after: 2.6, action: async() => showHint("puzzle_9", "middle_table", "hint_1", 8)},
   ]);
 
   const showHint = async (
@@ -364,15 +370,27 @@ const PlayerActions: React.FC = () => {
       console.log("The stage completed, hint is not shown")
       return
     }
+    const puzzle = puzzlesRef.current.find((p) => p.id === puzzleId);
+
+    const isSHownHint = puzzle?.stages?.[stageId]?.hints?.[hintId]?.["isShared"] 
+
+    if(isSHownHint){
+      console.log("Hint is already shown for the step")
+      return
+    }
 
     await updatePuzzleInFirebase(puzzleId, stageId, {}, hintId, { isShared: true });
   
-    const puzzle = puzzlesRef.current.find((p) => p.id === puzzleId);
     const hintMessage = puzzle?.stages?.[stageId]?.hints?.[hintId]?.["message"] 
     console.log("Auto hint shown")
 
-    let newHintCount = (hintsUsed ?? 0) + 1
-    setHintsUsed(newHintCount)
+    if(hintsUsed != null){
+      const currentHintsUsed = useGameStore.getState().hintsUsed;
+      setHintsUsed((currentHintsUsed ?? 0) + 1);
+      console.log("Current hint count: ", currentHintsUsed)
+    }else{
+      console.log("Hints null")
+    }
     
     showAlertDialog({
       title: "Hint!",
@@ -402,6 +420,7 @@ const PlayerActions: React.FC = () => {
   const startTheGame = async() => {
     setHintsUsed(0)
     setLoading(true)
+    await startGameAndBooking(useCompanyStore.getState().companyData?.id, useGameStore.getState().gameData?.roomId)
     await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "actions.isActivated": true });
     setLoading(false)
     timerGameRef.current?.start();
@@ -978,8 +997,24 @@ const PlayerActions: React.FC = () => {
     });
   }
   
-  const navigateToStatistics = () => {
-    router.push('/GameStatistics/[TeamStats]')
+  const navigateToStatistics = async() => {
+    const finalTime = getElapsed()
+    setTimeOfGame(finalTime ?? 0)
+
+    await endGameAndUpdate(useGameStore.getState().gameData?.id, useGameStore.getState().gameData?.roomId)
+    await postStats(useGameStore.getState().gameData?.id, hintsUsed)
+    setTimeout(async() => {
+      await getStats(useGameStore.getState().gameData?.id)
+    }, 3000); 
+
+    showAlertDialog({
+      title: "Navigating",
+      message: `You will be redirected to the team statistics in 5 seconds...`,
+    });
+
+    setTimeout(() => {
+      router.push('/GameStatistics/[TeamStats]')
+    }, 5000); 
   }
 
   return (
