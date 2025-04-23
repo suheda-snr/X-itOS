@@ -3,7 +3,7 @@ import { View, StyleSheet, Animated, PanResponder, Pressable, Text, ScrollView, 
 import Svg, { Rect, Circle, Text as SvgText, Line } from "react-native-svg";
 import { Alert } from "react-native";
 import GameTimer, {GameTimerHandle} from "@/components/GameTimer";
-import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
+import { doc, updateDoc, collection, onSnapshot, setDoc,  getDoc,  deleteField } from "firebase/firestore";
 import { db } from "./firebase/firebaseConfig";
 import { useCompanyStore } from "@/stateStore/companyStore";
 import { useHintScheduler } from "@/utils/useHintScheduler";
@@ -50,6 +50,12 @@ interface Sensor {
   isActive: boolean;
 }
 
+interface HintRequest {
+  puzzleId: string;
+  stageId: string;
+  state: string;
+}
+
 const PlayerActions: React.FC = () => {
   const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
   const puzzlesRef = useRef<Puzzle[]>([]);
@@ -62,6 +68,7 @@ const PlayerActions: React.FC = () => {
   const roomData = useCompanyStore.getState().selectedRoomForGame
   const hintsUsed = useGameStore(state => state.hintsUsed)
   const setHintsUsed = useGameStore(state => state.setHintsUsed)
+  const displayedHintsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     puzzlesRef.current = puzzles;
@@ -153,6 +160,75 @@ const PlayerActions: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const hintRequestsRef = doc(db, "hintRequests", "requests");
+    
+    const unsubscribe = onSnapshot(hintRequestsRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const approvedRequests = Object.entries(data).filter(
+          ([_, request]: [string, any]) => request.state === "approved"
+        );
+
+        const declinedRequests = Object.entries(data).filter(
+          ([_, request]: [string, any]) => request.state === "declined"
+        );
+
+        declinedRequests.forEach(([key, request]) => {
+          //show an alert saying that the hint was declined
+          const { puzzleId, stageId } = request;
+          const hintKey = `${puzzleId}_${stageId}`;
+          const puzzle = puzzlesRef.current.find((p) => p.id === puzzleId);
+          if (puzzle) {
+            const stage = puzzle.stages[stageId];
+            if (stage) {
+              const hint = stage.hints ? stage.hints[Object.keys(stage.hints)[0]] : undefined;
+              if (hint) {
+                showAlertDialog({
+                  title: "Hint Declined",
+                  message: `Your request is declined. Try to think more about the puzzle!`,
+                });
+                // Mark hint as displayed
+                displayedHintsRef.current.add(hintKey);
+              }
+            }
+          }
+        } 
+        );
+
+        approvedRequests.forEach(([key, request]) => {
+          const { puzzleId, stageId } = request;
+          const hintKey = `${puzzleId}_${stageId}`;
+
+          // Check if hint has already been displayed
+          if (!displayedHintsRef.current.has(hintKey)) {
+            const puzzle = puzzlesRef.current.find((p) => p.id === puzzleId);
+            if (puzzle) {
+              const stage = puzzle.stages[stageId];
+              if (stage) {
+                const hint = stage.hints ? stage.hints[Object.keys(stage.hints)[0]] : undefined;
+                if (hint) {
+                  showHintMessage(hint.message);
+                  // Mark hint as displayed
+                  displayedHintsRef.current.add(hintKey);
+                }
+              }
+            }
+          }
+        });
+      }
+    });
+
+    timerRef.current.push(unsubscribe);
+
+    return () => unsubscribe();
+  }, [puzzles]);
+
+  const showHintMessage = (message: string) => {
+    Alert.alert("Hint", message, [{ text: "OK" }], { cancelable: true });
+  };
+
+
   const updatePuzzleStatus = async (
     puzzleId: string,
     updates: { [key: string]: any },
@@ -191,6 +267,64 @@ const PlayerActions: React.FC = () => {
       await updateDoc(sensorRef, updates);
     } catch (error) {
       console.error("Error updating sensor:", error);
+    }
+  };
+
+  const requestHint = async () => {
+    try {
+      // Find the current active stage (first unsolved, activated stage)
+      let currentPuzzleId: string | null = null;
+      let currentStageId: string | null = null;
+
+      for (const puzzle of puzzlesRef.current) {
+        for (const [stageId, stage] of Object.entries(puzzle.stages)) {
+          if (stage.actions?.isActivated && !stage.isSolved) {
+            currentPuzzleId = puzzle.id;
+            currentStageId = stageId;
+            break;
+          }
+        }
+        if (currentPuzzleId && currentStageId) break;
+      }
+
+      if (!currentPuzzleId || !currentStageId) {
+        showAlertDialog({
+          title: "No Active Stage",
+          message: "No active puzzle stage found. Start the game or progress further to request a hint.",
+        });
+        return;
+      }
+
+      const hintRequestDocRef = doc(db, "hintRequests", "requests");
+      const requestKey = `${currentPuzzleId}_${currentStageId}_${Date.now()}`; // Unique key for the request
+      const hintRequest: HintRequest = {
+        puzzleId: currentPuzzleId,
+        stageId: currentStageId,
+        state: "pending",
+      };
+
+      try {
+        await updateDoc(hintRequestDocRef, {
+          [requestKey]: hintRequest,
+        });
+      } catch (error: any) {
+        if (error.code === "not-found") {
+          await setDoc(hintRequestDocRef, { [requestKey]: hintRequest });
+        } else {
+          throw error;
+        }
+      }
+
+      showAlertDialog({
+        title: "Hint Requested",
+        message: `Hint is request for ${currentPuzzleId} - ${currentStageId}. Please wait for the admin to approve.`,
+      });
+    } catch (error) {
+      console.error("Error requesting hint:", error);
+      showAlertDialog({
+        title: "Error",
+        message: "Failed to request hint. Please try again.",
+      });
     }
   };
 
@@ -694,6 +828,7 @@ const PlayerActions: React.FC = () => {
     await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "pieces.piece_2.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "pieces.piece_3.isInteracted": false });
     await updateSensorInFirebase("TW_sign_lights", { isActive: false });
+    await updatePuzzleInFirebase("puzzle_1", "temple_wall", {}, "hint_1", { isShared: false });
     //puzzle 1 stage 2
     await updatePuzzleInFirebase("puzzle_1", "totem", { "isSolved": false });
     await updatePuzzleInFirebase("puzzle_1", "totem", { "actions.isActivated": false });
@@ -704,6 +839,7 @@ const PlayerActions: React.FC = () => {
     await updateSensorInFirebase("TW_door", { isActive: false });
     await updateSensorInFirebase("main_light", { isActive: false });
     await updateSensorInFirebase("table", { isActive: false });
+    await updatePuzzleInFirebase("puzzle_1", "totem", {}, "hint_1", { isShared: false });
     await updatePuzzleStatus("puzzle_1", {"isSolved": false})
     await updatePuzzleInFirebase("puzzle_2", "piece_1", { "actions.isActivated": false });
     //puzzle 2 stage 1
@@ -713,6 +849,7 @@ const PlayerActions: React.FC = () => {
     await updateSensorInFirebase("main_light", { isActive: false });
     await updateSensorInFirebase("red_toplight", { isActive: false });
     await updatePuzzleInFirebase("puzzle_2", "piece_1", { "isSolved": false });
+    await updatePuzzleInFirebase("puzzle_2", "piece_1", {}, "hint_1", { isShared: false });
     await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "actions.isActivated": false });
     await updatePuzzleStatus("puzzle_2", {"isSolved": false})
     //puzzle 3 stage 1
@@ -724,6 +861,7 @@ const PlayerActions: React.FC = () => {
     await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "pieces.button_6.isInteracted": false });
 
     await updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "isSolved": false });
+    await updatePuzzleInFirebase("puzzle_3", "wall_buttons", {}, "hint_1", { isShared: false });
     await updatePuzzleStatus("puzzle_3", {"isSolved": false})
     await updateSensorInFirebase("locker_under_weights", { isActive: false });
     await updatePuzzleInFirebase("puzzle_4", "gears", { "actions.isActivated": false });
@@ -731,21 +869,25 @@ const PlayerActions: React.FC = () => {
     //puzzle 4 stage 1
     await updatePuzzleInFirebase("puzzle_4", "gears", { "pieces.gears.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_4", "gears", { "isSolved": false });
+    await updatePuzzleInFirebase("puzzle_4", "gears", {}, "hint_1", { isShared: false });
     await updatePuzzleInFirebase("puzzle_4", "crank_rotation", { "actions.isActivated": false });
     await updateSensorInFirebase("sliding_door", { isActive: false });
     //puzzle 4 stage 2
     await updatePuzzleInFirebase("puzzle_4", "crank_rotation", { "piece.crank.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_4", "crank_rotation", {}, "hint_1", { isShared: false });
     await updatePuzzleInFirebase("puzzle_5", "insert_ball", { "actions.isActivated": false });
     await updateSensorInFirebase("ball_locker", { isActive: false });
     await updatePuzzleInFirebase("puzzle_4", "crank_rotation", { "isSolved": false });
     await updatePuzzleStatus("puzzle_4", {"isSolved": false})
     //puzzle 5 stage 1
     await updatePuzzleInFirebase("puzzle_5", "insert_ball", { "pieces.ball.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_5", "insert_ball", {}, "hint_1", { isShared: false });
     await updateSensorInFirebase("crank_hole", { isActive: false });
     await updatePuzzleInFirebase("puzzle_5", "crank_rotation_to_get_balls", { "actions.isActivated": false });
     await updatePuzzleInFirebase("puzzle_5", "insert_ball", { "isSolved": false });
     //Puzzle 5 stage 2
     await updatePuzzleInFirebase("puzzle_5", "crank_rotation_to_get_balls", { "pieces.crank.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_5", "crank_rotation_to_get_balls", {}, "hint_1", { isShared: false });
     await updatePuzzleInFirebase("puzzle_6", "weight", { "actions.isActivated": false });
     await updateSensorInFirebase("balls_releasing_mechanism", { isActive: false });
     await updatePuzzleInFirebase("puzzle_5", "crank_rotation_to_get_balls", { "isSolved": false });
@@ -754,6 +896,7 @@ const PlayerActions: React.FC = () => {
     await updatePuzzleInFirebase("puzzle_6", "weight", { "pieces.piece_1.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_6", "weight", { "pieces.piece_2.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_6", "weight", { "pieces.piece_3.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_6", "weight", {}, "hint_1", { isShared: false });
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "actions.isActivated": false });
     await updatePuzzleInFirebase("puzzle_6", "weight", { "isSolved": false });
     await updatePuzzleStatus("puzzle_6", {"isSolved": false})
@@ -761,6 +904,7 @@ const PlayerActions: React.FC = () => {
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "pieces.piece_1.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "pieces.piece_2.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "pieces.piece_3.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_7", "wheels", {}, "hint_1", { isShared: false });
     await updateSensorInFirebase("dog_locker", { isActive: false });
     await updatePuzzleInFirebase("puzzle_8", "altar", { "actions.isActivated": false });
     await updatePuzzleInFirebase("puzzle_7", "wheels", { "isSolved": false });
@@ -769,6 +913,7 @@ const PlayerActions: React.FC = () => {
     await updatePuzzleInFirebase("puzzle_8", "altar", { "pieces.piece_1.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_8", "altar", { "pieces.piece_2.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_8", "altar", { "pieces.piece_3.isInteracted": false });
+    await updatePuzzleInFirebase("puzzle_8", "altar", {}, "hint_1", { isShared: false });
     await updateSensorInFirebase("table_lock", { isActive: false });
     await updatePuzzleInFirebase("puzzle_9", "pegs", { "actions.isActivated": false });
     await updatePuzzleInFirebase("puzzle_8", "altar", { "isSolved": false });
@@ -778,15 +923,41 @@ const PlayerActions: React.FC = () => {
     await updatePuzzleInFirebase("puzzle_9", "pegs", { "pieces.piece_2.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_9", "pegs", { "pieces.piece_3.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_9", "pegs", { "isSolved": false });
+    await updatePuzzleInFirebase("puzzle_9", "pegs", {}, "hint_1", { isShared: false });
     //Puzzle 9 stage 2
     await updateSensorInFirebase("skull_placement", { isActive: false });
     await updatePuzzleInFirebase("puzzle_9", "middle_table", { "actions.isActivated": false });
     await updatePuzzleInFirebase("puzzle_9", "middle_table", { "pieces.piece_1.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_9", "middle_table", { "pieces.piece_2.isInteracted": false });
     await updatePuzzleInFirebase("puzzle_9", "middle_table", { "isSolved": false });
+    await updatePuzzleInFirebase("puzzle_9", "middle_table", {}, "hint_1", { isShared: false });
     await updatePuzzleStatus("puzzle_9", {"isSolved": false})
     await updateSensorInFirebase("TW_door", { isActive: false });
     setLoading(false)
+
+    //delete all field in hint requests collection
+    try {
+      const hintRequestDocRef = doc(db, "hintRequests", "requests");
+      const hintRequestDocSnap = await getDoc(hintRequestDocRef);
+  
+      if (hintRequestDocSnap.exists()) {
+        const fields = hintRequestDocSnap.data();
+        const fieldKeys = Object.keys(fields);
+        
+        if (fieldKeys.length > 0) {
+          // Create an update object to delete all fields
+          const deleteUpdates = fieldKeys.reduce((acc, key) => {
+            acc[key] = deleteField();
+            return acc;
+          }, {} as Record<string, any>);
+  
+          await updateDoc(hintRequestDocRef, deleteUpdates);
+        }
+      }
+    } catch (error) {
+      console.error("Error resetting hint requests:", error);
+    }
+    displayedHintsRef.current.clear();
     console.log("RESETED.....")
 
     showAlertDialog({
@@ -803,6 +974,10 @@ const PlayerActions: React.FC = () => {
         <Text style={styles.buttonText}>
           {loading ? "Loading..." : "Start"}
         </Text>
+      </Pressable>
+
+      <Pressable style={styles.button} onPress={requestHint}>
+          <Text style={styles.buttonText}>Request Hint</Text>
       </Pressable>
 
       <Pressable style={styles.button} onPressIn={touchStoneWall}>

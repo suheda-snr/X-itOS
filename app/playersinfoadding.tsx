@@ -6,11 +6,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useGameStore } from "@/stateStore/gameStore";
 import { DisplayPlayers, Player } from "@/types/player";
-import { addGuestPlayers } from "@/api/gameApi";
-import { v4 as uuidv4 } from 'uuid';
-import { updateGameData } from "@/api/gameApi";
-
-
+import { addGuestPlayers, updateGameData, updateBookingState } from "@/api/gameApi";
+import { checkProfanity } from '../utils/profanity';
+import PlayersInfoAddingScreenStyles from '../styles/playersInfo';
+import { colors } from '../styles/common';
 
 const PlayersInfoAddingScreen: React.FC = () => {
   const { gameData, updateGameData: updateStoreGameData } = useGameStore();
@@ -33,7 +32,7 @@ const PlayersInfoAddingScreen: React.FC = () => {
   };
 
   const addGuest = () => {
-    const newGuest: DisplayPlayers = { 
+    const newGuest: DisplayPlayers = {
       id: `${displayPlayers.length * 2}`,
       name: `Guest ${displayPlayers.length + 1}`,
       isGuest: true,
@@ -48,6 +47,11 @@ const PlayersInfoAddingScreen: React.FC = () => {
   const handleSaveName = async () => {
     if (newTeamName.length > 15) {
       Alert.alert("Invalid Name", "Team names longer than 15 characters are not valid.");
+      return;
+    }
+
+    if (checkProfanity(newTeamName)) {
+      Alert.alert("Invalid Name", "The team name contains inappropriate language. Please choose a different name.");
       return;
     }
 
@@ -90,7 +94,7 @@ const PlayersInfoAddingScreen: React.FC = () => {
     if (displayPlayers?.filter(player => player.isAdult === null).length == 0) {
       Alert.alert(
         "Are you sure?",
-        "Are you sure you want to start the game?",
+        "Are you sure you want to proceed forward with the game?",
         [
           {
             text: "No",
@@ -101,7 +105,13 @@ const PlayersInfoAddingScreen: React.FC = () => {
             onPress: async () => {
               const playersParam = JSON.stringify(playersData);
               const teamNameParam = JSON.stringify(teamName);
-              await addGuestPlayers(displayPlayers)
+              await addGuestPlayers(displayPlayers);
+              const bookingId = gameData?.bookingId
+              if (bookingId) {
+                await updateBookingState(bookingId, "IN_PROGRESS");
+              } else {
+                console.error("Booking ID is undefined.");
+              }
               router.push(`/teaminfo?players=${encodeURIComponent(playersParam)}&teamName=${encodeURIComponent(teamNameParam)}`);
             },
           },
@@ -112,45 +122,66 @@ const PlayersInfoAddingScreen: React.FC = () => {
       Alert.alert("Warning", "Not all players have roles!");
     }
   }
-
   return (
-    <LinearGradient colors={["#1a1a1a", "#2a2a2a"]} style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Team name:</Text>
+    <LinearGradient
+      colors={[colors.dark1, colors.dark2]}
+      style={PlayersInfoAddingScreenStyles.container}
+    >
+      <View style={PlayersInfoAddingScreenStyles.header}>
+        <Text style={PlayersInfoAddingScreenStyles.title}>Team name:</Text>
         {isEditingName ? (
           <>
             <TextInput
-              style={styles.input}
+              style={PlayersInfoAddingScreenStyles.input}
               value={newTeamName}
               onChangeText={setNewTeamName}
             />
-            <TouchableOpacity style={styles.saveButton} onPress={handleSaveName}>
-              <Text style={styles.buttonText}>Save</Text>
+            <TouchableOpacity
+              style={PlayersInfoAddingScreenStyles.saveButton}
+              onPress={handleSaveName}
+            >
+              <Text style={PlayersInfoAddingScreenStyles.buttonText}>Save</Text>
             </TouchableOpacity>
           </>
         ) : (
           <>
-            <Text style={styles.teamName}>{teamName}</Text>
-            <TouchableOpacity style={styles.editButton} onPress={handleEditName}>
-              <Text style={styles.buttonText}>Edit</Text>
+            <Text style={PlayersInfoAddingScreenStyles.teamName}>{teamName}</Text>
+            <TouchableOpacity
+              style={PlayersInfoAddingScreenStyles.editButton}
+              onPress={handleEditName}
+            >
+              <Text style={PlayersInfoAddingScreenStyles.buttonText}>Edit</Text>
             </TouchableOpacity>
           </>
         )}
       </View>
 
-      <Text style={styles.subtitle}>Players: {displayPlayers?.length}</Text>
+      <Text style={PlayersInfoAddingScreenStyles.subtitle}>
+        Players: {displayPlayers?.length}
+      </Text>
 
       <FlatList
         data={displayPlayers}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.playerRow}>
-            <FontAwesome5 name="user" size={20} color="#ff4b8c" style={styles.icon} />
-            <Text style={styles.playerName}>{item.name}</Text>
+          <View style={PlayersInfoAddingScreenStyles.playerRow}>
+            <FontAwesome5
+              name="user"
+              size={20}
+              color={colors.primary}
+              style={PlayersInfoAddingScreenStyles.icon}
+            />
+            <Text style={PlayersInfoAddingScreenStyles.playerName}>{item.name}</Text>
             <Picker
-              selectedValue={item.isAdult === null ? "" : item.isAdult ? "Adult" : "Child"}
-              style={item.isGuest ? styles.picker : styles.pickerNotAvailable}
-              onValueChange={(value) => updatePlayerRole(item.id, value as "" | "Adult" | "Child")}
+              selectedValue={
+                item.isAdult === null ? '' : item.isAdult ? 'Adult' : 'Child'
+              }
+              style={
+                item.isGuest
+                  ? PlayersInfoAddingScreenStyles.picker
+                  : PlayersInfoAddingScreenStyles.pickerNotAvailable
+              }
+              onValueChange={(value) => updatePlayerRole(item.id, value as '' | 'Adult' | 'Child')}
               enabled={item.isGuest}
             >
               <Picker.Item label="Choose..." value="" />
@@ -161,45 +192,35 @@ const PlayersInfoAddingScreen: React.FC = () => {
         )}
       />
 
-      <View style={styles.buttonContainer}>
+      <View style={PlayersInfoAddingScreenStyles.buttonContainer}>
         <TouchableOpacity onPress={showInstructions}>
-          <FontAwesome5 name="info-circle" size={32} color="#ff4b8c" />
+          <FontAwesome5 name="info-circle" size={32} color={colors.primary} />
         </TouchableOpacity>
-        <View style={styles.buttonsGroup}>
-          <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText} onPress={() => router.push('/QRScanner/PersonalQR')}>Scan QR</Text>
+        <View style={PlayersInfoAddingScreenStyles.buttonsGroup}>
+          <TouchableOpacity style={PlayersInfoAddingScreenStyles.button}>
+            <Text
+              style={PlayersInfoAddingScreenStyles.buttonText}
+              onPress={() => router.push('/QRScanner/PersonalQR')}
+            >
+              Scan QR
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={addGuest}>
-            <Text style={styles.buttonText}>Add Guest</Text>
+          <TouchableOpacity
+            style={PlayersInfoAddingScreenStyles.button}
+            onPress={addGuest}
+          >
+            <Text style={PlayersInfoAddingScreenStyles.buttonText}>Add Guest</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.startButton} onPress={() => startTheGame()}>
-            <Text style={styles.buttonText}>Start Game</Text>
+          <TouchableOpacity
+            style={PlayersInfoAddingScreenStyles.startButton}
+            onPress={startTheGame}
+          >
+            <Text style={PlayersInfoAddingScreenStyles.buttonText}>Proceed to Game</Text>
           </TouchableOpacity>
         </View>
       </View>
     </LinearGradient>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  header: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
-  title: { fontSize: 18, fontWeight: "bold", color: "#fff", marginRight: 10 },
-  teamName: { fontSize: 18, color: "#fff", marginRight: 10 },
-  editButton: { padding: 5, backgroundColor: "#ff4b8c", borderRadius: 5 },
-  saveButton: { padding: 5, backgroundColor: "#ff4b8c", borderRadius: 5, marginLeft: 10 },
-  buttonText: { color: "#fff", fontWeight: "bold" },
-  input: { borderBottomWidth: 1, borderColor: "#fff", padding: 5, flex: 1, color: "#fff" },
-  subtitle: { fontSize: 16, fontWeight: "bold", color: "#fff", marginBottom: 10 },
-  playerRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  icon: { marginRight: 10 },
-  playerName: { flex: 1, fontSize: 16, color: "#fff" },
-  picker: { width: 200, color: "#fff", backgroundColor: "rgba(255,255,255,0.1)" },
-  pickerNotAvailable: { width: 200, color: "#fff" },
-  buttonContainer: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
-  button: { padding: 10, backgroundColor: "#ff4b8c", borderRadius: 5, marginHorizontal: 10 },
-  startButton: { padding: 10, backgroundColor: "#ff4b8c", borderRadius: 5, marginHorizontal: 10 },
-  buttonsGroup: { flexDirection: "row", justifyContent: "space-between" },
-});
 
 export default PlayersInfoAddingScreen;

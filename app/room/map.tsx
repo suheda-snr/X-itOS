@@ -1,9 +1,13 @@
 import React, { useRef, useState, useEffect } from "react";
-import { View, StyleSheet, Animated, PanResponder, Pressable, Text, Button, Image } from "react-native";
-import Svg, { Rect, Circle, Text as SvgText, Line } from "react-native-svg";
+import { View, StyleSheet, Animated, PanResponder, Pressable, Text, Button, Image, Modal, ScrollView, ImageBackground, FlatList, Switch } from "react-native";
+import Svg, { Rect, Circle, Text as SvgText, Line, Polygon } from "react-native-svg";
 import { Alert } from "react-native";
 import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
+import { useCompanyStore } from '@/stateStore/companyStore';
+import { useGameStore } from '@/stateStore/gameStore';
+import { startGameAndBooking, endGameAndUpdate } from '@/api/gameApi';
+import { formatTime } from "@/utils/formatTime";
 
 interface Hint {
   message: string;
@@ -35,9 +39,17 @@ interface Puzzle {
 }
 
 interface Sensor {
+  name: string;
   id: string;
   type: string;
   isActive: boolean;
+}
+
+interface ChangeLogEntry {
+  timestamp: string;
+  type: 'puzzle' | 'sensor';
+  id: string;
+  changes: Record<string, any>;
 }
 
 const Map: React.FC = () => {
@@ -50,13 +62,142 @@ const Map: React.FC = () => {
   const [sensors, setSensors] = useState<Sensor[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
   const timerRef = useRef<Array<NodeJS.Timeout | Function>>([]);
+  const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
+  const [isChangeLogVisible, setIsChangeLogVisible] = useState(false);
+  const { companyData, selectedRoomForGame } = useCompanyStore();
+  const { setIsGameSet, setGameData, setBookingDetails, gameData } = useGameStore();
+
+  const [timeRemaining, setTimeRemaining] = useState<number>(
+    selectedRoomForGame?.duration ? selectedRoomForGame.duration * 60 : 0
+  );
 
   useEffect(() => {
     puzzlesRef.current = puzzles;
   }, [puzzles]);
 
   useEffect(() => {
+    if (gameStarted && timeRemaining > 0) {
+      const interval = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            showAlertDialog({
+              title: "Time's Up!",
+              message: "The game couldn't be completed in time.",
+            });
+            setGameStarted(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      timerRef.current.push(interval);
+    }
+  }, [gameStarted]);
+
+  useEffect(() => {
+    if (!gameStarted || !gameData?.id || !selectedRoomForGame?.id) {
+      console.log('Cannot end game:', {
+        gameStarted,
+        gameId: gameData?.id,
+        roomId: selectedRoomForGame?.id,
+        timeRemaining,
+      });
+      return;
+    }
+
+    const puzzle9 = puzzles.find((p) => p.id === 'puzzle_9');
+    const isPuzzle9Solved = puzzle9?.isSolved;
+    const mainDoorSensor = sensors.find((s) => s.id === 'main_door');
+    const isMainDoorClosed = !mainDoorSensor?.isActive;
+
+    console.log('Game Status:', {
+      isPuzzle9Solved,
+      isMainDoorClosed,
+      puzzle9Id: puzzle9?.id,
+      mainDoorSensorId: mainDoorSensor?.id,
+      timeRemaining,
+    });
+
+    // Timer for decrementing timeRemaining
+    let interval: NodeJS.Timeout | null = null;
+    if (gameStarted && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval!);
+            console.log('Ending game due to time up');
+            endGameAndUpdate(gameData.id, selectedRoomForGame.id)
+              .then((updatedGame) => {
+                setGameStarted(false);
+                setTimeRemaining(0);
+              })
+              .catch((error) => {
+                console.error('Error ending game:', error);
+                showAlertDialog({
+                  title: 'Error',
+                  message: `Failed to end the game: ${error.message || 'Unknown error'}.`,
+                });
+              });
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      timerRef.current.push(interval);
+    }
+
+    // Check game-ending conditions for puzzle_9
+    if (isPuzzle9Solved && isMainDoorClosed) {
+      console.log('Ending game due to puzzle_9 solved and main door closed');
+      endGameAndUpdate(gameData.id, selectedRoomForGame.id)
+        .then((updatedGame) => {
+          setGameStarted(false);
+          setTimeRemaining(0);
+          showAlertDialog({
+            title: 'Game Ended',
+            message: 'Game is completed successfully by the team!',
+          });
+          // Clean up timers
+          timerRef.current.forEach((item) => {
+            if (typeof item === 'function') {
+              item();
+            } else {
+              clearInterval(item);
+            }
+          });
+          timerRef.current = [];
+        })
+        .catch((error) => {
+          console.error('Error ending game:', error);
+          showAlertDialog({
+            title: 'Error',
+            message: `Failed to end the game: ${error.message || 'Unknown error'}. Please try again.`,
+          });
+        });
+    }
+
+    // Cleanup
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [puzzles, sensors, gameStarted, gameData, selectedRoomForGame, timeRemaining]);
+
+  useEffect(() => {
     const puzzlesUnsubscribe = onSnapshot(collection(db, "puzzles"), (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "modified") {
+          setChangeLog(prev => [...prev, {
+            timestamp: new Date().toISOString(),
+            type: 'puzzle',
+            id: change.doc.id,
+            changes: change.doc.data()
+          }]);
+        }
+      });
+
       const puzzlesData = snapshot.docs.map((docSnapshot) => {
         const puzzle: Puzzle = {
           id: docSnapshot.id,
@@ -116,6 +257,17 @@ const Map: React.FC = () => {
     });
 
     const sensorsUnsubscribe = onSnapshot(collection(db, "sensors"), (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "modified") {
+          setChangeLog(prev => [...prev, {
+            timestamp: new Date().toISOString(),
+            type: 'sensor',
+            id: change.doc.id,
+            changes: change.doc.data()
+          }]);
+        }
+      });
+
       const sensorsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...(doc.data() as Omit<Sensor, "id">),
@@ -176,7 +328,6 @@ const Map: React.FC = () => {
 
   const handleSensorPress = async (sensorName: string) => {
     try {
-      // Find the sensor by its name
       const sensor = sensors.find((s) => s.id === sensorName);
       if (!sensor) {
         showAlertDialog({
@@ -187,8 +338,6 @@ const Map: React.FC = () => {
       }
 
       const updatedStatus = !sensor.isActive;
-
-      // Update the sensor in Firebase using its name
       await updateSensorInFirebase(sensorName, { isActive: updatedStatus });
 
       showAlertDialog({
@@ -204,13 +353,43 @@ const Map: React.FC = () => {
     }
   };
 
+  const toggleChangeLog = () => {
+    setIsChangeLogVisible(!isChangeLogVisible);
+  };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (gameStarted) return;
     setGameStarted(true);
+
+    if (!companyData?.id || !selectedRoomForGame?.id) {
+      console.warn('Company ID or Room ID is missing');
+      return;
+    }
+
+    let teamName: string = "guest";
+    try {
+      // Start game and update booking
+      const updatedGame = await startGameAndBooking(companyData.id, selectedRoomForGame.id);
+
+      if (updatedGame) {
+        setGameStarted(true);
+        setIsGameSet(true);
+
+        teamName = updatedGame?.teamName;
+
+        console.log('Game started successfully:', updatedGame);
+      } else {
+        console.log('No game or booking to update.');
+      }
+    } catch (error) {
+      console.log('Error starting the game and booking:', error);
+    }
+
+    setTimeRemaining(selectedRoomForGame.duration * 60);
+
     showAlertDialog({
       title: "Start",
-      message: "Game started! Temple wall action activated.",
+      message: `Game started for ${teamName} team! Temple wall action activated.`,
     });
 
     const puzzleId = puzzles[0]?.id || "puzzle_1";
@@ -220,331 +399,8 @@ const Map: React.FC = () => {
       "actions.isActivated": true,
     });
 
-    timerRef.current.push(
-      setTimeout(() => {
-        const templeWallInteractedPiece1 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
-        const templeWallInteractedPiece2 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_2?.isInteracted;
 
-        console.log("Hint 1 - templeWallInteractedPiece1:", templeWallInteractedPiece1);
-        console.log("Hint 1 - templeWallInteractedPiece2:", templeWallInteractedPiece2);
-
-        if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
-          updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_1", { isShared: true });
-          showAlertDialog({ title: "Hint", message: "Hint 1 is shared for puzzle_1" });
-        }
-      }, 20 * 1000) // 20 seconds
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const templeWallInteractedPiece1 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
-        const templeWallInteractedPiece2 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_2?.isInteracted;
-        console.log("Hint 2 - templeWallInteractedPiece1:", templeWallInteractedPiece1);
-        console.log("Hint 2 - templeWallInteractedPiece2:", templeWallInteractedPiece2);
-        if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
-          updatePuzzleInFirebase(puzzleId, stageId, {}, "hint_2", { isShared: true });
-          showAlertDialog({ title: "Hint", message: "Hint 2 is shared for puzzle_1" });
-        }
-      }, 60 * 1000) // 1 minute
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const templeWallInteractedPiece1 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_1?.isInteracted;
-        const templeWallInteractedPiece2 = puzzlesRef.current[0]?.stages?.temple_wall?.pieces?.piece_2?.isInteracted;
-        console.log("Automation - templeWallInteractedPiece1:", templeWallInteractedPiece1);
-        console.log("Automation - templeWallInteractedPiece2:", templeWallInteractedPiece2);
-        if (!templeWallInteractedPiece1 && !templeWallInteractedPiece2) {
-          updateSensorInFirebase("TW_sign_lights", { isActive: true });
-          updatePuzzleInFirebase(puzzleId, "totem", { "actions.isActivated": true });
-          showAlertDialog({
-            title: "Automation",
-            message: "TW_sign_lights and Totem action activated due to inactivity.",
-          });
-        }
-      }, 90 * 1000) // 90 seconds
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const totemInteracted = puzzlesRef.current[0]?.stages?.totem?.pieces?.piece_1?.isInteracted;
-        console.log("Automation - totemInteracted:", totemInteracted);
-        if (!totemInteracted) {
-          updatePuzzleInFirebase(puzzleId, "totem", {}, "hint_3", { isShared: true });
-          showAlertDialog({
-            title: "Hint",
-            message: "Hint 3 is shared for puzzle_1",
-          });
-        }
-      }, 120 * 1000) // 2 minutes
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const totemInteracted = puzzlesRef.current[0]?.stages?.totem?.pieces?.piece_1?.isInteracted;
-        console.log("Automation - totemInteracted:", totemInteracted);
-        if (!totemInteracted) {
-          updateSensorInFirebase("TW_door", { isActive: true });
-          updateSensorInFirebase("main_light", { isActive: true });
-          updatePuzzleInFirebase("puzzle_2", "piece_1", { "actions.isActivated": true });
-          showAlertDialog({
-            title: "Automation",
-            message: "TW_door and main light activated due to inactivity. Puzzle 2 unlocked.",
-          });
-        }
-      }, 150 * 1000)
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        // Check if all pieces are interacted with
-        const piece1 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_1?.isInteracted;
-        const piece2 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_2?.isInteracted;
-        const piece3 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_3?.isInteracted;
-        const piece4 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_4?.isInteracted;
-        const piece5 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_5?.isInteracted;
-        const piece6 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_6?.isInteracted;
-
-        const puzzleCompleted = piece1 && piece2 && piece3 && piece4 && piece5 && piece6;
-
-        if (!puzzleCompleted) {
-          updatePuzzleInFirebase("puzzle_2", "piece_1", {}, "hint_1", { isShared: true });
-          showAlertDialog({
-            title: "Hint",
-            message: "Hint is shared for puzzle_2",
-          });
-        }
-      }, 180 * 1000)
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        // Check if all pieces are interacted with
-        const piece1 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_1?.isInteracted;
-        const piece2 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_2?.isInteracted;
-        const piece3 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_3?.isInteracted;
-        const piece4 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_4?.isInteracted;
-        const piece5 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_5?.isInteracted;
-        const piece6 = puzzlesRef.current[1]?.stages?.piece_1?.pieces?.piece_6?.isInteracted;
-
-        const puzzleCompleted = piece1 && piece2 && piece3 && piece4 && piece5 && piece6;
-
-        if (!puzzleCompleted) {
-          updateSensorInFirebase("main_light", { isActive: false });
-          updateSensorInFirebase("red_toplight", { isActive: true });
-          updatePuzzleInFirebase("puzzle_3", "wall_buttons", { "actions.isActivated": true });
-
-          showAlertDialog({
-            title: "Puzzle 2 Complete",
-            message: "Main light deactivated, red top light activated, and Puzzle 3 unlocked due to inactivity.",
-          });
-        }
-      }, 200 * 1000) // 2 minutes 40 seconds
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const wallButtons1 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_1?.isInteracted;
-        const wallButtons2 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_2?.isInteracted;
-        const wallButtons3 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_3?.isInteracted;
-        const wallButtons4 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_4?.isInteracted;
-        const wallButtons5 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_5?.isInteracted;
-        const wallButtons6 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_6?.isInteracted;
-
-        if (!wallButtons1 && !wallButtons2 && !wallButtons4 && !wallButtons6) {
-          updatePuzzleInFirebase("puzzle_3", "wall_buttons", {}, "hint_1", { isShared: true });
-          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_3" });
-        }
-      }, 220 * 1000)
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const wallButtons1 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_1?.isInteracted;
-        const wallButtons2 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_2?.isInteracted;
-        const wallButtons3 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_3?.isInteracted;
-        const wallButtons4 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_4?.isInteracted;
-        const wallButtons5 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_5?.isInteracted;
-        const wallButtons6 = puzzlesRef.current[2]?.stages?.wall_button?.pieces?.button_6?.isInteracted;
-
-        if (!wallButtons1 && !wallButtons2 && wallButtons3 && !wallButtons4 && wallButtons5 && !wallButtons6) {
-          updateSensorInFirebase("locker_under_weights", { isActive: true });
-          updatePuzzleInFirebase("puzzle_4", "gears", { "actions.isActivated": true });
-          showAlertDialog({
-            title: "Automation",
-            message: "Locker under weights sensor activated and puzzle_4 stage activated due to inactivity.",
-          });
-        }
-      }, 250 * 1000)
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const gearsPieces = puzzlesRef.current[3]?.stages?.gears?.pieces?.gears?.isInteracted;
-
-        console.log("Hint 1 - gearsPieces:", gearsPieces);
-        if (!gearsPieces) {
-          updatePuzzleInFirebase("puzzle_4", "gears", {}, "hint_1", { isShared: true });
-          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_4" });
-        }
-      }, 270 * 1000)
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const gearsPieces = puzzlesRef.current[3]?.stages?.gears?.pieces?.gears?.isInteracted;
-
-        if (!gearsPieces) {
-          updatePuzzleInFirebase("puzzle_4", "crank_rotation", { "actions.isActivated": true });
-          updateSensorInFirebase("sliding_door", { isActive: false });
-          showAlertDialog({
-            title: "Automation",
-            message: "Sliding door closed and crank rotation activated due to inactivity.",
-          });
-        }
-      }, 280 * 1000)
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const cranckRotation = puzzlesRef.current[3]?.stages?.crank_rotation?.pieces?.crank?.isInteracted;
-
-        if (!cranckRotation) {
-          updatePuzzleInFirebase("puzzle_5", "insert_ball", { "actions.isActivated": true });
-          updateSensorInFirebase("ball_locker", { isActive: true });
-          showAlertDialog({
-            title: "Automation",
-            message: "Ball locker sensor activated and insert ball stage activated due to inactivity.",
-          });
-        }
-      }, 290 * 1000)
-    );
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const ballInsert = puzzlesRef.current[4]?.stages?.insert_ball?.pieces?.ball?.isInteracted;
-
-        if (!ballInsert) {
-          updatePuzzleInFirebase("puzzle_5", "crank_rotation_to_get_balls", { "actions.isActivated": true });
-          updateSensorInFirebase("crank_hole", { isActive: true });
-          showAlertDialog({
-            title: "Automation",
-            message: "Crank hole sensor activated and crank rotation to get balls stage activated due to inactivity.",
-          });
-        }
-      }, 310 * 1000)
-    )
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const gettingBalls = puzzlesRef.current[4]?.stages?.crank_rotation_to_get_balls?.pieces?.ball?.isInteracted;
-
-        if (!gettingBalls) {
-          updatePuzzleInFirebase("puzzle_6", "weight", { "actions.isActivated": true });
-          updateSensorInFirebase("balls_releasing_mechanism", { isActive: true });
-          showAlertDialog({
-            title: "Automation",
-            message: "Balls are released and next step is activated"
-          });
-        }
-      }, 320 * 1000)
-    )
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const ball1 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_1?.isInteracted;
-        const ball2 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_2?.isInteracted;
-        const ball3 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_3?.isInteracted;
-
-        if (!ball1 && !ball2 && !ball3) {
-          updatePuzzleInFirebase("puzzle_6", "weight", {}, "hint_1", { isShared: true });
-          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_6" });
-        }
-      }
-        , 340 * 1000)
-    )
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const ball1 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_1?.isInteracted;
-        const ball2 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_2?.isInteracted;
-        const ball3 = puzzlesRef.current[5]?.stages?.weight?.pieces?.piece_3?.isInteracted;
-
-        if (!ball1 && !ball2 && !ball3) {
-          updatePuzzleInFirebase("puzzle_7", "wheels", { "actions.isActivated": true });
-          showAlertDialog({
-            title: "Automation",
-            message: "Wheels stage activated due to inactivity.",
-          });
-        }
-      }, 360 * 1000)
-    )
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const wheel1 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
-        const wheel2 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
-        const wheel3 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_3?.isInteracted;
-
-        if (!wheel1 && !wheel2 && !wheel3) {
-          updatePuzzleInFirebase("puzzle_7", "wheels", {}, "hint_1", { isShared: true });
-          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_7" });
-        }
-      }
-        , 380 * 1000)
-    )
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const wheel1 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
-        const wheel2 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
-        const wheel3 = puzzlesRef.current[6]?.stages?.wheels?.pieces?.piece_3?.isInteracted;
-
-        if (!wheel1 && !wheel2 && !wheel3) {
-          updateSensorInFirebase("dog_locker", { isActive: true });
-          updatePuzzleInFirebase("puzzle_8", "altar", { "actions.isActivated": true });
-          showAlertDialog({
-            title: "Automation",
-            message: "Altar stage is activated and dog locker is opened.",
-          });
-        }
-      }
-        , 400 * 1000)
-    )
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const object1 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
-        const object2 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
-        const object3 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_3?.isInteracted;
-
-        if (!object1 && !object2 && !object3) {
-          updatePuzzleInFirebase("puzzle_8", "altar", {}, "hint_1", { isShared: true });
-          showAlertDialog({ title: "Hint", message: "Hint is shared for puzzle_8" });
-        }
-      }
-        , 410 * 1000)
-    )
-
-    timerRef.current.push(
-      setTimeout(() => {
-        const object1 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_1?.isInteracted;
-        const object2 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_2?.isInteracted;
-        const object3 = puzzlesRef.current[7]?.stages?.wheels?.pieces?.piece_3?.isInteracted;
-
-        if (!object1 && !object2 && !object3) {
-          updateSensorInFirebase("table_lock", { isActive: true });
-          updatePuzzleInFirebase("puzzle_9", "pegs", { "actions.isActivated": true });
-          showAlertDialog({
-            title: "Automation",
-            message: " Pegs stage is activated and table lock is opened",
-          });
-        }
-      }
-        , 420 * 1000)
-    )
   }
-
 
   const panResponder = useRef(
     PanResponder.create({
@@ -564,237 +420,418 @@ const Map: React.FC = () => {
   ).current;
 
   return (
-    <View style={styles.outerContainer}>
-      <View style={styles.startButtonContainer}>
-        <Button title="Start" onPress={handleStart} disabled={gameStarted} />
-      </View>
+    <ImageBackground
+      // source={{ uri: 'https://as2.ftcdn.net/v2/jpg/00/10/01/27/1000_F_1000127921_RhVXYEqBPtL1o2gy4F7SHdXp6MOrn7Zw.jpg' }}
+      style={styles.container}
+    >
 
-      <View style={styles.inventoryContainer}>
-        <Text style={styles.inventoryTitle}>Inventory</Text>
-        <View style={styles.itemList}>
-          {puzzles.map((puzzle, index) =>
-            puzzle.stages &&
-            Object.keys(puzzle.stages).map((stageKey, stageIndex) => (
-              <View key={`${index}-${stageIndex}`} style={styles.itemContainer}>
-                <Pressable onPress={() => toggleItem(`p${index + 1}.${stageIndex + 1}`)}>
-                  <Text style={styles.itemText}>
-                    p.{index + 1}.{stageIndex + 1}.{" "}
-                    {openItem === `p${index + 1}.${stageIndex + 1}` ? "▼" : "▶"}
-                  </Text>
-                </Pressable>
-                {openItem === `p${index + 1}.${stageIndex + 1}` && (
-                  <View>
-                    <Text style={styles.itemDetails}>
-                      Details: {puzzle.stages[stageKey].pieces?.piece_1?.type || "No type"} - Interacted:{" "}
-                      {puzzle.stages[stageKey].pieces?.piece_1?.isInteracted ? "Yes" : "No"}
-                    </Text>
-                    <Image
-                      source={{ uri: puzzle.stages[stageKey].image_url }}
-                      style={{ width: 100, height: 100, marginTop: 5 }}
-                    />
-                  </View>
-                )}
-              </View>
-            ))
-          )}
+      <View style={styles.outerContainer}>
+        <View style={styles.startButtonContainer}>
+          <Button title="Start" color='gray' onPress={handleStart} disabled={gameStarted} />
         </View>
-      </View>
 
-      <View style={styles.container} {...panResponder.panHandlers}>
-        <Animated.View style={{ transform: [{ scale }, { translateX }, { translateY }] }}>
-          <Svg width={500} height={500} viewBox="0 0 500 500">
-            <Rect x={0} y={0} width={500} height={500} fill="none" stroke="black" strokeWidth={10} />
-            <Line x1={0} y1={400} x2={0} y2={470} stroke="brown" strokeWidth={5} />
-            <Line x1={0} y1={350} x2={500} y2={350} stroke="black" strokeWidth={8} />
-            <Rect x={500} y={100} width={-30} height={200} fill="grey" stroke="black" strokeWidth={1} />
+        <Modal
+          visible={isChangeLogVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={toggleChangeLog}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Change Log</Text>
+              <ScrollView style={styles.changeLogContainer}>
+                {changeLog.length === 0 ? (
+                  <Text>No changes recorded yet</Text>
+                ) : (
+                  changeLog.map((entry, index) => (
+                    <View key={index} style={styles.changeEntry}>
+                      <Text style={styles.changeTimestamp}>
+                        {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </Text>
+                      <Text>Name: {entry.type === 'sensor' ? entry.changes.name : `Puzzle ${entry.id}`}</Text>
+                      <Text>Status: {entry.type === 'sensor' ? (entry.changes.isActive ? 'Activated' : 'Deactivated') : (entry.changes.isSolved ? 'Solved' : 'Unsolved')}</Text>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+              <Button title="Close" color="gray" onPress={toggleChangeLog} />
+            </View>
+          </View>
+        </Modal>
 
-            {puzzles.length > 0 && puzzles[0].stages && (
-              <>
-                {puzzles[0].stages["temple_wall"] && (
-                  <>
-                    <Rect x={40} y={350} width={150} height={30} fill="grey" stroke="black" strokeWidth={1} />
-                    <Circle
+        <View style={styles.inventoryContainer}>
+          <Button title="Show Changes" onPress={toggleChangeLog} color='gray' />
+          <Text style={styles.inventoryTitle}>Puzzles</Text>
+
+          {/* <View style={styles.fadeOverlay} /> */}
+
+          <View style={styles.itemList}>
+            {puzzles.map((puzzle, index) =>
+              puzzle.stages &&
+              Object.keys(puzzle.stages).map((stageKey, stageIndex) => (
+                <View key={`${index}-${stageIndex}`} style={styles.itemContainer}>
+                  <Pressable onPress={() => toggleItem(`p${index + 1}.${stageIndex + 1}`)}>
+                    <Text style={styles.itemText}>
+                      p.{index + 1}.{stageIndex + 1}.{" "}
+                      {openItem === `p${index + 1}.${stageIndex + 1}` ? "▼" : "▶"}
+                    </Text>
+                  </Pressable>
+                  {openItem === `p${index + 1}.${stageIndex + 1}` && (
+                    <View>
+                      <Text style={styles.itemDetails}>
+                        Details: {puzzle.stages[stageKey].pieces?.piece_1?.type || "No type"} - Interacted:{" "}
+                        {puzzle.stages[stageKey].pieces?.piece_1?.isInteracted ? "Yes" : "No"}
+                      </Text>
+                      <Image
+                        source={{ uri: puzzle.stages[stageKey].image_url }}
+                        style={{ width: 100, height: 100, marginTop: 5 }}
+                      />
+                    </View>
+                  )}
+                </View>
+              ))
+            )}
+          </View>
+        </View>
+
+        <View style={styles.container} {...panResponder.panHandlers}>
+          <Animated.View style={{ transform: [{ scale }, { translateX }, { translateY }] }}>
+            <Svg width={500} height={500} viewBox="0 0 500 500">
+              <Rect x={0} y={0} width={500} height={500} fill="none" stroke="gray" strokeWidth={1} />
+              <Line x1={0} y1={400} x2={0} y2={470} stroke="brown" strokeWidth={5} />
+              <Line x1={0} y1={350} x2={500} y2={350} stroke="black" strokeWidth={8} />
+              <Rect x={500} y={100} width={-30} height={200} fill="transparent" stroke="black" strokeWidth={1} />
+
+              {puzzles.length > 0 && puzzles[0].stages && (
+                <>
+                  {puzzles[0].stages["temple_wall"] && (
+                    <>
+                      <Rect x={40} y={350} width={150} height={30} fill="transparent" stroke="black" strokeWidth={1} />
+                      {/* <Circle
                       cx={80}
                       cy={365}
                       r={12}
-                      fill={puzzles[0].stages["temple_wall"].pieces?.piece_1?.isInteracted ? "green" : "black"}
+                      fill={puzzles[0].stages["temple_wall"].pieces?.piece_1?.isInteracted ? "green" : "transparent"}
                       stroke="black"
                       strokeWidth={1}
                     />
-                    <SvgText x={72} y={369} fontSize={10} fill="white">P.1.1</SvgText>
+                    <SvgText x={72} y={369} fontSize={10} fill="black">P.1.1</SvgText> */}
 
-                    <Circle
-                      cx={120}
-                      cy={365}
-                      r={12}
-                      fill={
-                        sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "green" : "red"
-                      }
-                      stroke="black"
-                      strokeWidth={1}
-                    />
-                    <SvgText x={113} y={369} fontSize={12}>S.1.</SvgText>
+                      <Circle
+                        cx={120}
+                        cy={365}
+                        r={12}
+                        fill={
+                          sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "green" : "transparent"
+                        }
+                        stroke="black"
+                        strokeWidth={1}
+                      />
+                      <SvgText x={113} y={369} fontSize={12}>S.1.</SvgText>
 
-                    <Rect x={380} y={350} width={100} height={30} fill="grey" stroke="black" strokeWidth={1} />
-                    <Circle
+                      <Rect x={380} y={350} width={100} height={30} fill="transparent" stroke="black" strokeWidth={1} />
+                      {/* <Circle
                       cx={410}
                       cy={365}
                       r={12}
-                      fill={puzzles[0].stages["temple_wall"].pieces?.piece_2?.isInteracted ? "green" : "black"}
+                      fill={puzzles[0].stages["temple_wall"].pieces?.piece_2?.isInteracted ? "green" : "transparent"}
                       stroke="black"
                       strokeWidth={1}
                     />
-                    <SvgText x={400} y={369} fontSize={10} fill="white">P.1.1</SvgText>
+                    <SvgText x={400} y={369} fontSize={10} fill="black">P.1.1</SvgText> */}
 
-                    <Circle
-                      cx={450}
-                      cy={365}
-                      r={12}
-                      fill={
-                        sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "green" : "red"
-                      }
-                      stroke="black"
-                      strokeWidth={1}
-                    />
-                    <SvgText x={441} y={369} fontSize={12}>S.1.</SvgText>
-                  </>
-                )}
+                      <Circle
+                        cx={450}
+                        cy={365}
+                        r={12}
+                        fill={
+                          sensors.find((s) => s.id === "TW_sign_lights")?.isActive ? "green" : "transparent"
+                        }
+                        stroke="black"
+                        strokeWidth={1}
+                      />
+                      <SvgText x={441} y={369} fontSize={12}>S.1.</SvgText>
+                    </>
+                  )}
 
-                {puzzles[0].stages["totem"] && (
-                  <>
-                    <Circle
-                      cx={440}
-                      cy={440}
-                      r={50}
-                      fill={puzzles[0].stages["totem"].pieces?.piece_1?.isInteracted ? "green" : "black"}
-                      stroke="black"
-                      strokeWidth={1}
-                    />
-                    <SvgText x={425} y={448} fontSize={14} fill="white">P.1.2.</SvgText>
+                  {puzzles[0].stages["totem"] && (
+                    <>
+                      <Circle
+                        cx={440}
+                        cy={440}
+                        r={30}
+                        fill={puzzles[0].stages["totem"].pieces?.piece_1?.isInteracted ? "green" : "transparent"}
+                        stroke="black"
+                        strokeWidth={1}
+                      />
+                      {/* <SvgText x={425} y={448} fontSize={14} fill="black">P.1.2.</SvgText> */}
 
-                    <Line
-                      x1={250}
-                      y1={350}
-                      x2={340}
-                      y2={350}
-                      stroke={sensors.find((s) => s.id === "TW_door")?.isActive ? "yellow" : "pink"}
-                      strokeWidth={5}
-                    />
-                    <SvgText x={310} y={365} fontSize={12}>S.2.</SvgText>
-                  </>
-                )}
+                      <Line
+                        x1={250}
+                        y1={350}
+                        x2={340}
+                        y2={350}
+                        stroke={sensors.find((s) => s.id === "TW_door")?.isActive ? "yellow" : "pink"}
+                        strokeWidth={5}
+                      />
+                      <SvgText x={310} y={365} fontSize={12}>S.2.</SvgText>
+                    </>
+                  )}
 
-                {puzzles[1].stages["piece_1"] && (
-                  <>
-                    <Rect x={70} y={465} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "black"} stroke="black" strokeWidth={1} />
-                    <SvgText x={75} y={479} fontSize={10} fill="white">P.2.1</SvgText>
-                    <Rect x={470} y={270} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "black"} stroke="black" strokeWidth={1} />
-                    <SvgText x={475} y={284} fontSize={10} fill="white">P.2.2</SvgText>
-                    <Rect x={280} y={95} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "black"} stroke="black" strokeWidth={1} />
-                    <SvgText x={285} y={109} fontSize={10} fill="white">P.2.3</SvgText>
-                  </>
-                )}
+                  {puzzles[1].stages["piece_1"] && (
+                    <>
+                      {/* <Rect x={70} y={465} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "transparent"} stroke="black" strokeWidth={1} />
+                    <SvgText x={75} y={479} fontSize={10} fill="black">P.2.1</SvgText> */}
+                      {/* <Rect x={470} y={270} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "transparent"} stroke="black" strokeWidth={1} />
+                    <SvgText x={475} y={284} fontSize={10} fill="black">P.2.2</SvgText> */}
+                      {/* <Rect x={280} y={95} width={30} height={20} fill={puzzles[1].stages["piece_1"].pieces?.piece_1?.isInteracted ? "green" : "transparent"} stroke="black" strokeWidth={1} />
+                    <SvgText x={285} y={109} fontSize={10} fill="black">P.2.3</SvgText> */}
+                    </>
+                  )}
 
-                {puzzles[2].stages["wall_buttons"] && (
-                  <>
-                    <Rect x={5} y={160} width={25} height={140} fill="grey" stroke="black" strokeWidth={1} />
-                    {["button_6", "button_5", "button_4", "button_3", "button_2", "button_1"].map((button, index) => {
-                      const cx = 17;
-                      const cy = 180 + index * 20;
-                      return (
-                        <React.Fragment key={button}>
-                          <Circle
-                            cx={cx}
-                            cy={cy}
-                            r={8}
-                            fill={puzzles[2].stages["wall_buttons"].pieces?.[button]?.isInteracted ? "green" : "black"}
-                            stroke="black"
-                            strokeWidth={1}
-                          />
-                          <SvgText x={cx - 2} y={cy + 4} fontSize={8} fill="white">
-                            {6 - index}
-                          </SvgText>
-                        </React.Fragment>
-                      );
-                    })}
-                    <Rect x={380} y={316} width={100} height={30} fill="grey" stroke="black" strokeWidth={1} />
-                    <Rect x={380} y={315} width={100} height={8} fill={sensors.find((s) => s.id === "7" && s.isActive) ? "yellow" : "pink"} stroke="black" strokeWidth={1} />
-                    <SvgText x={420} y={324} fontSize={12}>S.7.</SvgText>
-                  </>
-                )}
-              </>
+                  {puzzles[2].stages["wall_buttons"] && (
+                    <>
+                      <Rect x={5} y={160} width={25} height={140} fill="transparent" stroke="black" strokeWidth={1} />
+                      {["button_6", "button_5", "button_4", "button_3", "button_2", "button_1"].map((button, index) => {
+                        const cx = 17;
+                        const cy = 180 + index * 20;
+                        return (
+                          <React.Fragment key={button}>
+                            <Circle
+                              cx={cx}
+                              cy={cy}
+                              r={8}
+                              fill={puzzles[2].stages["wall_buttons"].pieces?.[button]?.isInteracted ? "green" : "transparent"}
+                              stroke="black"
+                              strokeWidth={1}
+                            />
+                            <SvgText x={cx - 2} y={(cy ?? 0) + 4} fontSize={8} fill="black">
+                              {6 - index}
+                            </SvgText>
+                          </React.Fragment>
+                        );
+                      })}
+                      <Rect x={380} y={316} width={100} height={30} fill="transparent" stroke="black" strokeWidth={1} />
+                      <Rect x={380} y={315} width={100} height={8} fill={sensors.find((s) => s.id === "7" && s.isActive) ? "yellow" : "pink"} stroke="black" strokeWidth={1} />
+                      <SvgText x={420} y={324} fontSize={12}>S.7.</SvgText>
+                    </>
+
+                  )}
+                </>
+              )}
+
+
+              {/* Triangles above table with labels and color change based on puzzle completion */}
+              {/* {["Left", "Center", "Right"].map((label, index) => {
+  const cx = 10; // X-coordinate for all triangles (you can adjust this as needed)
+  let cy;
+  const puzzleState = puzzles[2]?.stages["wall_buttons"].pieces?.[`button_${index + 1}`]?.isInteracted;
+
+  // Adjust Y based on which triangle (Left, Center, Right)
+  if (label === "Left") {
+    cy = 105;
+  } else if (label === "Center") {
+    cy = 90;
+  } else if (label === "Right") {
+    cy = 75;
+  } */}
+
+              {/* return (
+    <React.Fragment key={label}>
+      {/* Triangle */}
+              {/* <Polygon
+        points={`${cx},${cy ?? 0} ${cx - 9},${(cy ?? 0) - 5} ${cx - 9},${(cy ?? 0) + 5}`} // Triangular shape
+        fill={puzzleState ? "green" : "lightgray"} // Change color based on puzzle completion
+        stroke="black"
+        strokeWidth={1}
+      /> */}
+
+              {/* Label */}
+              {/* <SvgText x={cx - 2} y={(cy ?? 0) + 4} fontSize={8} fill="black">
+        {label[0]} {/* Use the first letter for the label (Left = L, Center = C, etc.) */}
+              {/* </SvgText>  */}
+              {/* </React.Fragment>
+  );  */}
+              {/* })} */}
+
+
+
+
+              {/* Rectangle above table - First Set */}
+              <Rect
+                x={230}
+                y={1}
+                width={250}
+                height={20}
+                fill="transparent"
+                stroke="black"
+                strokeWidth={1}
+              />
+
+              {/* Sensor bar inside the above rectangle - First Set */}
+              <Rect
+                x={230}
+                y={21} // Adjusted to start below the rectangle
+                width={250}
+                height={8}
+                fill={sensors.find((s) => s.id === "10" && s.isActive) ? "yellow" : "pink"}
+                stroke="black"
+                strokeWidth={1}
+              />
+              <SvgText x={350} y={29} fontSize={12}>S.10.</SvgText>
+
+              {/* Spacer to move the second set lower */}
+              <Rect
+                x={20}
+                y={1}  // Adjusted to add space before the next set
+                width={130}
+                height={20}
+                fill="transparent"
+                stroke="black"
+                strokeWidth={1}
+              />
+
+              {/* Sensor bar inside the above rectangle - Second Set */}
+              <Rect
+                x={20}
+                y={20}  // Adjusted to align with the second rectangle
+                width={130}
+                height={8}
+                fill={sensors.find((s) => s.id === "9" && s.isActive) ? "yellow" : "pink"}
+                stroke="black"
+                strokeWidth={1}
+              />
+              <SvgText x={75} y={29} fontSize={12}>S.9.</SvgText>
+
+
+              {/* Spacer to move the second set lower */}
+              <Rect
+                x={20}
+                y={326}  // Adjusted to add space before the next set
+                width={130}
+                height={20}
+                fill="transparent"
+                stroke="black"
+                strokeWidth={1}
+              />
+
+              {/* Sensor bar inside the above rectangle - Second Set */}
+              <Rect
+                x={20}
+                y={326}  // Adjusted to align with the second rectangle
+                width={130}
+                height={8}
+                fill={sensors.find((s) => s.id === "8" && s.isActive) ? "yellow" : "pink"}
+                stroke="black"
+                strokeWidth={1}
+              />
+              <SvgText x={70} y={335} fontSize={12}>S.8.</SvgText>
+
+
+
+              {/* <Rect x={295} y={415} width={40} height={30} fill="transparent" stroke="black" strokeWidth={1} rotation={10} originX={315} originY={425} />
+            <SvgText x={300} y={435} fontSize={12}>Diary</SvgText> */}
+              <Rect x={160} y={120} width={180} height={100} fill="transparent" stroke="black" strokeWidth={1} />
+              <SvgText x={235} y={180} fontSize={12}>Table</SvgText>
+              {/* <Rect x={233} y={160} width={40} height={20} fill="transparent" stroke="black" strokeWidth={1} />
+            <SvgText x={245} y={175} fontSize={10} fill="black">R.P</SvgText> */}
+
+              <Circle cx={485} cy={150} r={14} fill="transparent" stroke="black" strokeWidth={1} />
+              <SvgText x={482} y={155} fontSize={10} fill="black">S</SvgText>
+              <Circle cx={485} cy={190} r={14} fill="transparent" stroke="black" strokeWidth={1} />
+              <SvgText x={482} y={195} fontSize={10} fill="black">D</SvgText>
+              <Circle cx={485} cy={230} r={14} fill="transparent" stroke="black" strokeWidth={1} />
+              <SvgText x={482} y={235} fontSize={10} fill="black">H</SvgText>
+              <Rect x={500} y={50} width={-20} height={50} fill="transparent" stroke="black" strokeWidth={1} />
+            </Svg>
+          </Animated.View>
+        </View>
+        <Rect x={160} y={120} width={180} height={400} fill="transparent" stroke="black" strokeWidth={1} />
+
+        <View style={styles.sensorsContainer}>
+          <Text style={styles.sensorsTitle}>
+            {formatTime(timeRemaining)}
+          </Text>
+          <FlatList
+            data={sensors}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.sensorRow}>
+                <Text style={styles.sensorText}>{item.name}</Text>
+                <Switch
+                  value={item.isActive}
+                  onValueChange={() => handleSensorPress(item.id)}
+                  trackColor={{ false: "#ccc", true: "#2E7D32" }}
+                  thumbColor={item.isActive ? "#A5D6A7" : "#f4f3f4"}
+                />
+              </View>
             )}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
 
-            <Rect x={295} y={415} width={40} height={30} fill="brown" stroke="black" strokeWidth={1} rotation={10} originX={315} originY={425} />
-            <SvgText x={300} y={435} fontSize={12}>Diary</SvgText>
-            <Rect x={160} y={120} width={180} height={100} fill="grey" stroke="black" strokeWidth={1} />
-            <SvgText x={300} y={205} fontSize={12}>Table</SvgText>
-            <Rect x={233} y={160} width={40} height={20} fill="black" stroke="black" strokeWidth={1} />
-            <SvgText x={245} y={175} fontSize={10} fill="white">R.P</SvgText>
-
-            <Circle cx={485} cy={150} r={14} fill="black" stroke="black" strokeWidth={1} />
-            <SvgText x={482} y={155} fontSize={10} fill="white">S</SvgText>
-            <Circle cx={485} cy={190} r={14} fill="black" stroke="black" strokeWidth={1} />
-            <SvgText x={482} y={195} fontSize={10} fill="white">D</SvgText>
-            <Circle cx={485} cy={230} r={14} fill="black" stroke="black" strokeWidth={1} />
-            <SvgText x={482} y={235} fontSize={10} fill="white">H</SvgText>
-            <Rect x={500} y={50} width={-20} height={50} fill="brown" stroke="black" strokeWidth={1} />
-          </Svg>
-        </Animated.View>
       </View>
-
-      <View style={styles.sensorsContainer}>
-        <Text style={styles.sensorsTitle}>Sensors</Text>
-        {sensors.map((sensor) => (
-          <Pressable
-            key={sensor.id}
-            style={styles.sensorButton}
-            onPress={() => handleSensorPress(sensor.id)}
-          >
-            <Text style={styles.sensorText}>
-              {sensor.id} ({sensor.isActive ? "Active" : "Inactive"})
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-    </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  sensorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    // paddingVertical: 1,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  fadeOverlay: {
+    position: "absolute",
+    top: 2, // adjust as needed
+    left: 245,
+    width: 500, // size of the faded area
+    height: 500, // size of the faded area
+    backgroundColor: "rgba(88, 76, 79, 0.7)", // black with 40% opacity
+    zIndex: 1, // make sure it overlays but doesn't block important elements
+  },
   outerContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
   },
   startButtonContainer: {
     position: "absolute",
     top: 10,
+    left: 960,
     zIndex: 1,
   },
   inventoryContainer: {
-    width: 150,
+    width: 100,
     marginRight: 20,
+    marginTop: -30,
   },
   inventoryTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "bold",
-    marginBottom: 10,
-    color: "#333",
+    // marginBottom: 20,
+    color: "black",
   },
   itemList: {
-    backgroundColor: "#f0f0f0",
+    // backgroundColor: "lightgray",
     borderRadius: 5,
     padding: 10,
+
   },
   itemContainer: {
-    marginBottom: 10,
+    marginBottom: 8
   },
   itemText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
-    color: "#333",
+    color: "black",
+    marginTop: 1,
   },
   itemDetails: {
     fontSize: 14,
@@ -815,20 +852,59 @@ const styles = StyleSheet.create({
   sensorsTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 10,
-    color: "#333",
+    marginTop: 55,
+    marginBottom: 3,
+    color: "black",
   },
   sensorButton: {
-    backgroundColor: "#ddd",
-    padding: 10,
-    marginVertical: 5,
+    padding: 1,
+    marginVertical: 4,
     width: "100%",
     borderRadius: 5,
     alignItems: "center",
   },
+  activeSensor: {
+    backgroundColor: "green",
+  },
+  inactiveSensor: {
+    backgroundColor: "brown",
+  },
   sensorText: {
-    fontSize: 16,
-    color: "#333",
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "black",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  changeLogContainer: {
+    maxHeight: '80%',
+    marginBottom: 10,
+  },
+  changeEntry: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  changeTimestamp: {
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
 });
 
