@@ -912,7 +912,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   sensorsContainer: {
-    width: 150,
+    width: 180,
     marginLeft: 20,
     alignItems: "center",
   },
