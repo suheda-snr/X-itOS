@@ -19,13 +19,13 @@ export default function RootLayout() {
   return (
     <>
       <Stack screenOptions={{
+        headerTransparent: true,
         headerStyle: {
           backgroundColor: "transparent", // Change header background color
           ...Platform.select({
             android: { elevation: 1 }, // Remove shadow on Android
             ios: { shadowOpacity: 0 }, // Remove shadow on iOS
           }),
-
         },
         headerTintColor: "#333333", // Change text color
         headerTitleStyle: {
