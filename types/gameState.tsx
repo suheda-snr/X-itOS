@@ -8,7 +8,7 @@ export interface GameState {
     isGameSet: boolean;
     displayPlayers: DisplayPlayers[] 
     bookingDetails: Booking | null
-    // guestsData: Guest[] | null
+    hintsUsed: number | null
     setGameData: (gameData: Game) => void;
     resetGameData: () => void;
     setIsGameSet: (value: boolean) => void;
@@ -16,5 +16,5 @@ export interface GameState {
     setPlayersData: (player: Player) => void
     setDisplayPlayers: (player: DisplayPlayers) => void
     setBookingDetails: (booking: Booking) => void
-    // setGuestsData: (guest: Guest) => void
+    setHintsUsed: (hints: number) => void
 }

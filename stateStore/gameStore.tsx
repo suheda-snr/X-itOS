@@ -8,7 +8,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     gameData: null,
     isGameSet: false,
     playersData: null,
-    // guestsData: null,
+    hintsUsed: null,
     displayPlayers: [],
     bookingDetails: null,
     setGameData: (gameData: Game) => set({ gameData: gameData }),
@@ -34,9 +34,6 @@ export const useGameStore = create<GameState>((set, get) => ({
                     : [...state.displayPlayers, player] // Add new
                 : [player], // Initialize array if empty
             })),
-    setBookingDetails: (booking: Booking) => set({bookingDetails: booking})
-    // setGuestsData: (guest: Guest) =>
-    //     set((state) => ({
-    //         guestsData: state.guestsData ? [...state.guestsData, guest] : [guest]
-    //     })),
+    setBookingDetails: (booking: Booking) => set({bookingDetails: booking}),
+    setHintsUsed: (hints: number) => set({hintsUsed: hints})
     }));

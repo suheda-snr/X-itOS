@@ -7,6 +7,7 @@ import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase/firebaseConfig";
 import { useCompanyStore } from "@/stateStore/companyStore";
 import { useHintScheduler } from "@/utils/useHintScheduler";
+import { useGameStore } from "@/stateStore/gameStore";
 
 interface Hint {
   message: string;
@@ -59,6 +60,8 @@ const PlayerActions: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false)
   const timerGameRef = useRef<GameTimerHandle>(null);
   const roomData = useCompanyStore.getState().selectedRoomForGame
+  const hintsUsed = useGameStore(state => state.hintsUsed)
+  const setHintsUsed = useGameStore(state => state.setHintsUsed)
 
   useEffect(() => {
     puzzlesRef.current = puzzles;
@@ -230,6 +233,9 @@ const PlayerActions: React.FC = () => {
     const hintMessage = puzzle?.stages?.[stageId]?.hints?.[hintId]?.["message"] 
     console.log("Auto hint shown")
 
+    let newHintCount = (hintsUsed ?? 0) + 1
+    setHintsUsed(newHintCount)
+    
     showAlertDialog({
       title: "Hint!",
       message: `${hintMessage ?? "No message found"}`,
@@ -256,6 +262,7 @@ const PlayerActions: React.FC = () => {
   };
 
   const startTheGame = async() => {
+    setHintsUsed(0)
     setLoading(true)
     await updatePuzzleInFirebase("puzzle_1", "temple_wall", { "actions.isActivated": true });
     setLoading(false)
